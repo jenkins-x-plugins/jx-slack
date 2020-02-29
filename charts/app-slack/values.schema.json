@@ -1,0 +1,14 @@
+{
+  "$id": "https://example.com/address.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "values.yaml for app-slack",
+  "type": "object",
+  "properties": {
+    "hmacToken": {
+      "type": "string",
+      "title": "Name of the HMAC token secret",
+      "description": "Name of the hmac token secret that is already in the cluster",
+      "default": "hmac-token"
+    }
+  }
+}
