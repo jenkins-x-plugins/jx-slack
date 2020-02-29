@@ -1,4 +1,4 @@
-# app-slack
+# app-slack - NOT YET READY FOR USE
 
 WARNING: This is an experimental Jenkins X Labs project, it is likely to have significant change and APIs may break while
 we gather feedback and aim to get it into an alpha state.
