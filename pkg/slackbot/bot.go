@@ -197,7 +197,7 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 
 	prn, err := getPullRequestNumber(activity)
 	if err != nil {
-		return errors.Wrapf(err, "getting pull request number", activity.Name)
+		return errors.Wrapf(err, "getting pull request number %s", activity.Name)
 	}
 	if prn > 0 {
 		for _, cfg := range o.PullRequests {
@@ -358,7 +358,7 @@ func (o *SlackBotOptions) createReviewersMessage(activity *jenkinsv1.PipelineAct
 					mention, err := o.mentionOrLinkUser(u)
 					if err != nil {
 						return nil, nil, nil, errors.Wrapf(err,
-							"generating mention or link for user record %s with email", u.Name, u.Spec.Email)
+							"generating mention or link for user record %s with email %s", u.Name, u.Spec.Email)
 					}
 					mentions = append(mentions, mention)
 				}
