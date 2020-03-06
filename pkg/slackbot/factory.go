@@ -7,10 +7,11 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	slackapp "github.com/jenkins-x-labs/app-slack/pkg/apis/slack/v1alpha1"
-	v1client "github.com/jenkins-x-labs/app-slack/pkg/client/clientset/versioned"
+	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
+	v1client "github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned"
 	jenkinsv1client "github.com/jenkins-x/jx/pkg/client/clientset/versioned"
-	"github.com/jenkins-x/jx/pkg/jx/cmd"
+	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
+	opts "github.com/jenkins-x/jx/pkg/cmd/opts"
 	"github.com/jenkins-x/jx/pkg/kube"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -28,7 +29,7 @@ type Clients struct {
 	Factory        cmd.Factory
 
 	// TODO hacky and probably going to break a lot, but until Git Provider stuff is better unwound...
-	CommonOptions *cmd.CommonOptions
+	CommonOptions *opts.CommonOptions
 }
 
 // SlackBotOptions contains options for the SlackBot
@@ -88,7 +89,7 @@ func CreateClients() (*Clients, error) {
 		return nil, err
 	}
 
-	commonOptions := cmd.NewCommonOptions(ns, factory)
+	commonOptions := opts.NewCommonOptionsWithFactory(factory)
 
 	return &Clients{
 		SlackAppClient: slackAppClient,

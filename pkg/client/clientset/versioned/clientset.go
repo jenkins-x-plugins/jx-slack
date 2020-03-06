@@ -3,7 +3,7 @@
 package versioned
 
 import (
-	slackv1alpha1 "github.com/jenkins-x-labs/app-slack/pkg/client/clientset/versioned/typed/slack/v1alpha1"
+	slackv1alpha1 "github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned/typed/slack/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

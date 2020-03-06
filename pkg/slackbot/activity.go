@@ -32,7 +32,7 @@ func (o *SlackBotOptions) watchActivities() error {
 
 	jxClient := o.JXClient
 
-	log.Infof("Watching pipelines in namespace %s\n", o.Namespace)
+	log.Logger().Infof("Watching pipelines in namespace %s\n", o.Namespace)
 
 	activity := &jenkinsv1.PipelineActivity{}
 	_, controller := cache.NewInformer(
@@ -60,15 +60,15 @@ func (o *SlackBotOptions) watchActivities() error {
 func (o *SlackBotOptions) onObj(obj interface{}) {
 	activity, ok := obj.(*jenkinsv1.PipelineActivity)
 	if !ok {
-		log.Infof("Object is not a PipelineActivity %#v\n", obj)
+		log.Logger().Infof("Object is not a PipelineActivity %#v\n", obj)
 		return
 	}
 	err := o.PipelineMessage(activity)
 	if err != nil {
-		log.Warnf("%v\n", err)
+		log.Logger().Warnf("%v\n", err)
 	}
 	err = o.ReviewRequestMessage(activity)
 	if err != nil {
-		log.Warnf("%v\n", err)
+		log.Logger().Warnf("%v\n", err)
 	}
 }

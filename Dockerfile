@@ -7,5 +7,5 @@ FROM alpine:3.8
 RUN apk add --update ca-certificates openssl
 
 EXPOSE 8080
-ENTRYPOINT ["/app-slack"]
+ENTRYPOINT ["/slack"]
 COPY ./bin/ /

@@ -1,7 +1,7 @@
 {
   "$id": "https://example.com/address.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "description": "values.yaml for app-slack",
+  "description": "values.yaml for slack",
   "type": "object",
   "properties": {
     "hmacToken": {

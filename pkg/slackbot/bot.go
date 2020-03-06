@@ -15,7 +15,7 @@ import (
 
 	"github.com/jenkins-x/jx/pkg/users"
 
-	slackapp "github.com/jenkins-x-labs/app-slack/pkg/apis/slack/v1alpha1"
+	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
 
 	"github.com/pkg/errors"
 
@@ -23,8 +23,6 @@ import (
 	"github.com/jenkins-x/jx/pkg/kube"
 
 	"github.com/jenkins-x/jx/pkg/gits"
-
-	"github.com/jenkins-x/jx/pkg/jx/cmd"
 
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
@@ -144,7 +142,7 @@ func (o *SlackBotOptions) isEnabled(activity *jenkinsv1.PipelineActivity, orgs [
 			}
 		}
 		if len(found) > 0 {
-			log.Infof("Ignoring %s because it has labels %s\n", activity.Name, found)
+			log.Logger().Infof("Ignoring %s because it has labels %s\n", activity.Name, found)
 			return false, nil, nil, nil
 		}
 	}
@@ -161,7 +159,7 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 		if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.Orgs, cfg.IgnoreLabels); err != nil {
 			return errors.WithStack(err)
 		} else if enabled {
-			log.Infof("Preparing pipeline message for %s\n", activity.Name)
+			log.Logger().Infof("Preparing pipeline message for %s\n", activity.Name)
 			msg, createIfMissing, err := o.createPipelineMessage(activity, pullRequest)
 			if err != nil {
 				return err
@@ -206,7 +204,7 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 			if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.Orgs, cfg.IgnoreLabels); err != nil {
 				return errors.WithStack(err)
 			} else if enabled {
-				log.Infof("Preparing review request message for %s\n", activity.Name)
+				log.Logger().Infof("Preparing review request message for %s\n", activity.Name)
 				oldestActivity, latestActivity, all, err := o.findPipelineActivities(activity)
 				if err != nil {
 					return err
@@ -263,7 +261,7 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 						}
 					}
 				} else {
-					log.Infof("Skipping %v as it is older than latest build number %d\n", activity.Name,
+					log.Logger().Infof("Skipping %v as it is older than latest build number %d\n", activity.Name,
 						latestBuildNumber)
 				}
 			}
@@ -313,7 +311,7 @@ func (o *SlackBotOptions) findPipelineActivities(activity *jenkinsv1.PipelineAct
 		sort.Sort(byBuildNumber(acts.Items))
 		return &acts.Items[0], &acts.Items[len(acts.Items)-1], acts.Items, nil
 	} else {
-		log.Warnf("No pipeline activities exist for %s/%s/pr-%d", pipelineDetails.GitOwner, pipelineDetails.GitRepository, prn)
+		log.Logger().Warnf("No pipeline activities exist for %s/%s/pr-%d", pipelineDetails.GitOwner, pipelineDetails.GitRepository, prn)
 	}
 	return nil, nil, nil, nil
 }
@@ -634,12 +632,12 @@ func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messag
 	post := true
 	if timestamp != "" {
 		options = append(options, slack.MsgOptionUpdate(timestamp))
-		log.Infof("Updating message for %s with timestamp %s\n", activity.Name, timestamp)
+		log.Logger().Infof("Updating message for %s with timestamp %s\n", activity.Name, timestamp)
 	} else {
 		if createIfMissing {
-			log.Infof("Creating new message for %s\n", activity.Name)
+			log.Logger().Infof("Creating new message for %s\n", activity.Name)
 		} else {
-			log.Infof("No existing message to update, ignoring, for %s\n", activity.Name)
+			log.Logger().Infof("No existing message to update, ignoring, for %s\n", activity.Name)
 			post = false
 		}
 
@@ -686,7 +684,7 @@ func (o *SlackBotOptions) getPullRequest(activity *jenkinsv1.PipelineActivity) (
 		if activity.Spec.GitURL == "" {
 			return nil, nil, fmt.Errorf("no GitURL on PipelineActivity %s", activity.Name)
 		}
-		gitProvider, gitInfo, err := createGitProviderForURLWithoutKind(activity.Spec.GitURL, o.CommonOptions)
+		gitProvider, gitInfo, err := o.CommonOptions.CreateGitProviderForURLWithoutKind(activity.Spec.GitURL)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -714,11 +712,11 @@ func (o *SlackBotOptions) findMessageRefViaAnnotations(activity *jenkinsv1.Pipel
 		if value != "" {
 			values := strings.SplitN(value, "/", 2)
 			if len(values) > 1 {
-				log.Infof("Found annotation %s: %s for %s\n", key, value, activity.Name)
+				log.Logger().Infof("Found annotation %s: %s for %s\n", key, value, activity.Name)
 				return &MessageReference{values[0], values[1]}
 			}
 		}
-		log.Infof("Could not find annotation %s for %s\n", key, activity.Name)
+		log.Logger().Infof("Could not find annotation %s for %s\n", key, activity.Name)
 	}
 	return nil
 }
@@ -1034,23 +1032,4 @@ func pipelineIcon(statusType jenkinsv1.ActivityStatusType) string {
 
 func mentionUser(id string) string {
 	return fmt.Sprintf("<@%s>", id)
-}
-
-// TODO copied from jx :-/
-func createGitProviderForURLWithoutKind(gitURL string, o *cmd.CommonOptions) (gits.GitProvider, *gits.GitRepository,
-	error) {
-	gitInfo, err := gits.ParseGitURL(gitURL)
-	if err != nil {
-		return nil, gitInfo, err
-	}
-	gitKind, err := o.GitServerKind(gitInfo)
-	if err != nil {
-		return nil, gitInfo, err
-	}
-	authConfigSvc, err := o.CreateGitAuthConfigService()
-	if err != nil {
-		return nil, gitInfo, err
-	}
-	gitProvider, err := gits.CreateProviderForURL(o.Factory.IsInCluster(), authConfigSvc, gitKind, gitInfo.HostURL(), o.Git(), o.BatchMode, o.In, o.Out, o.Err)
-	return gitProvider, gitInfo, err
 }

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	jxcmd "github.com/jenkins-x/jx/pkg/jx/cmd"
+	jxcmd "github.com/jenkins-x/jx/pkg/cmd/helper"
 	"github.com/spf13/cobra"
 )
 

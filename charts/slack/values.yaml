@@ -3,11 +3,11 @@
 # Declare variables to be passed into your templates.
 replicaCount: 1
 image:
-  repository: jenkinsxio-labs/app-slack
+  repository: jenkinsxio-labs/slack
   tag: dev
   pullPolicy: IfNotPresent
 service:
-  name: app-slack
+  name: slack
   type: ClusterIP
   externalPort: 80
   internalPort: 8080
@@ -32,6 +32,6 @@ readinessProbe:
   successThreshold: 1
   timeoutSeconds: 1
 terminationGracePeriodSeconds: 10
-cbAppSlack:
+slack:
   hmacToken:
     Name: REPLACE_ME

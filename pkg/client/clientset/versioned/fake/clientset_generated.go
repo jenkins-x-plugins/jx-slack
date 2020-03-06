@@ -3,9 +3,9 @@
 package fake
 
 import (
-	clientset "github.com/jenkins-x-labs/app-slack/pkg/client/clientset/versioned"
-	slackv1alpha1 "github.com/jenkins-x-labs/app-slack/pkg/client/clientset/versioned/typed/slack/v1alpha1"
-	fakeslackv1alpha1 "github.com/jenkins-x-labs/app-slack/pkg/client/clientset/versioned/typed/slack/v1alpha1/fake"
+	clientset "github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned"
+	slackv1alpha1 "github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned/typed/slack/v1alpha1"
+	fakeslackv1alpha1 "github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned/typed/slack/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

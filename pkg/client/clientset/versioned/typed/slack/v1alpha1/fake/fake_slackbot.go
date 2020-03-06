@@ -3,7 +3,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/jenkins-x-labs/app-slack/pkg/apis/slack/v1alpha1"
+	v1alpha1 "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

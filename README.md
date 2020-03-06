@@ -1,4 +1,4 @@
-# app-slack - NOT YET READY FOR USE
+# slack - NOT YET READY FOR USE
 
 WARNING: This is an experimental Jenkins X Labs project, it is likely to have significant change and APIs may break while
 we gather feedback and aim to get it into an alpha state.
@@ -20,7 +20,7 @@ Got any great ideas we can add to the Slack App? If so [Raise a issue here](http
 
 ## Install the app
 
-`jx add app app-slack`
+`jx add app slack`
 
 The installer will ask you to enter:
 

@@ -8,3 +8,4 @@ target
 work
 bin/
 hack/code-generator
+build/

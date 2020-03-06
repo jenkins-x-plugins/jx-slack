@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	jxcmd "github.com/jenkins-x/jx/pkg/jx/cmd"
+	jxcmd "github.com/jenkins-x/jx/pkg/cmd/helper"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +14,7 @@ func NewCmdRoot() *cobra.Command {
 	var options = &SlackAppOptions{}
 
 	var rootCmd = &cobra.Command{
-		Use:   "app-slack",
+		Use:   "slack",
 		Short: "The jenkins-x App for Slack allows you to reports pipelines and review requests in Slack",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {

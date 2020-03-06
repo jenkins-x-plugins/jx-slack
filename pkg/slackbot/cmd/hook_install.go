@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jenkins-x-labs/app-slack/pkg/slackbot"
+	"github.com/jenkins-x-labs/slack/pkg/slackbot"
 	"k8s.io/test-infra/prow/plugins"
 
-	jxcmd "github.com/jenkins-x/jx/pkg/jx/cmd"
+	jxcmd "github.com/jenkins-x/jx/pkg/cmd/helper"
 	"github.com/jenkins-x/jx/pkg/prow"
 	"github.com/spf13/cobra"
 )
@@ -53,7 +53,7 @@ func (o *SlackAppInstallOptions) Run() error {
 		serviceName = fmt.Sprintf("http://%s", serviceName)
 	}
 	return prow.AddExternalPlugins(clients.KubeClient, nil, clients.Namespace, plugins.ExternalPlugin{
-		Name:     "app-slack",
+		Name:     "slack",
 		Endpoint: serviceName,
 	})
 }

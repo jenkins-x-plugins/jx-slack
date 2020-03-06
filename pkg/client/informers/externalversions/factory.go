@@ -7,9 +7,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/jenkins-x-labs/app-slack/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/jenkins-x-labs/app-slack/pkg/client/informers/externalversions/internalinterfaces"
-	slack "github.com/jenkins-x-labs/app-slack/pkg/client/informers/externalversions/slack"
+	versioned "github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/jenkins-x-labs/slack/pkg/client/informers/externalversions/internalinterfaces"
+	slack "github.com/jenkins-x-labs/slack/pkg/client/informers/externalversions/slack"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

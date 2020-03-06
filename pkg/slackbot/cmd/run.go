@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/jenkins-x-labs/app-slack/pkg/slackbot"
-	jxcmd "github.com/jenkins-x/jx/pkg/jx/cmd"
+	"github.com/jenkins-x-labs/slack/pkg/slackbot"
+	jxcmd "github.com/jenkins-x/jx/pkg/cmd/helper"
 	"github.com/spf13/cobra"
 )
 

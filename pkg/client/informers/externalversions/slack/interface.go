@@ -3,8 +3,8 @@
 package slack
 
 import (
-	internalinterfaces "github.com/jenkins-x-labs/app-slack/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/jenkins-x-labs/app-slack/pkg/client/informers/externalversions/slack/v1alpha1"
+	internalinterfaces "github.com/jenkins-x-labs/slack/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/jenkins-x-labs/slack/pkg/client/informers/externalversions/slack/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

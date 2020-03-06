@@ -25,19 +25,19 @@ func (s *SlackBots) ProwExternalPluginServer() error {
 				// then it's a health check
 			} else if webhookToken == nil {
 				if err == nil {
-					log.Errorf("Unable to load HMAC token as not specified\n")
+					log.Logger().Errorf("Unable to load HMAC token as not specified\n")
 				} else {
-					log.Errorf("Unable to load HMAC token as %v\n", err)
+					log.Logger().Errorf("Unable to load HMAC token as %v\n", err)
 				}
 			} else {
-				log.Errorf("Error validating WebHook, error code is %d\n", errCode)
+				log.Logger().Errorf("Error validating WebHook, error code is %d\n", errCode)
 			}
 			return
 		}
 		fmt.Fprint(w, "Event received. Have a nice day.")
 
 		if err := s.handleEvent(eventType, eventGUID, payload); err != nil {
-			log.Error("Error parsing event.")
+			log.Logger().Error("Error parsing event.")
 		}
 	})
 	externalplugins.ServeExternalPluginHelp(http.DefaultServeMux, logrus.StandardLogger().WithField("plugin",
@@ -68,7 +68,7 @@ func (s *SlackBots) handlePullRequest(pr github.PullRequestEvent) error {
 				}
 			}
 		} else {
-			log.Warnf("No pipeline activities exist for %s/%s/pr-%d", pr.Repo.Owner.Login, pr.Repo.Name, pr.Number)
+			log.Logger().Warnf("No pipeline activities exist for %s/%s/pr-%d", pr.Repo.Owner.Login, pr.Repo.Name, pr.Number)
 		}
 
 	}
@@ -84,7 +84,7 @@ func (s *SlackBots) handleEvent(eventType, eventGUID string, payload []byte) err
 		}
 		go func() {
 			if err := s.handlePullRequest(pr); err != nil {
-				log.Infof("Refreshing slack message failed because %v\n", err)
+				log.Logger().Infof("Refreshing slack message failed because %v\n", err)
 			}
 		}()
 	default:
