@@ -860,7 +860,7 @@ func pipelineName(activity *jenkinsv1.PipelineActivity) (string, error) {
 	}
 	prn, err := getPullRequestNumber(activity)
 	if err != nil {
-		return "", errors.Wrapf(err, "getting pull request number from %", activity.Name)
+		return "", errors.Wrapf(err, "getting pull request number from %s", activity.Name)
 	}
 	if prn > 0 {
 		return "Pull Request Pipeline", nil
