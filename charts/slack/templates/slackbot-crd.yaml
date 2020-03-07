@@ -1,9 +1,9 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: slackbots.slack.app.jenkins-x-labs.com
+  name: slackbots.slack.app.jenkins-x.io
 spec:
-  group: slack.app.jenkins-x-labs.com
+  group: slack.app.jenkins-x.io
   names:
     kind: SlackBot
     listKind: SlackBotList
@@ -22,4 +22,4 @@ spec:
     type: string
     description: The namespace the bot will watch
     JSONPath: .spec.namespace
-  version: v1
+  version: v1alpha1

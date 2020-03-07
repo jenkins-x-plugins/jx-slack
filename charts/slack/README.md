@@ -1,1 +1,1 @@
-# golang application
+# Slack application for Jenkins X

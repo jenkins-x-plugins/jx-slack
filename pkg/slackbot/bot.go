@@ -171,6 +171,7 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 					return errors.Wrap(err, fmt.Sprintf("error posting cfg for %s to channel %s", activity.Name,
 						channel))
 				}
+				log.Logger().Infof("Channel message sent to %s\n", cfg.Channel)
 			}
 			if cfg.DirectMessage {
 				if pullRequest != nil {
@@ -181,9 +182,11 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 							return errors.Wrap(err, fmt.Sprintf("error sending direct pipeline for %s to %s", activity.Name,
 								id))
 						}
+						log.Logger().Infof("Direct message sent to %s\n", pullRequest.Author)
 					}
 				}
 			}
+
 		}
 	}
 	return nil

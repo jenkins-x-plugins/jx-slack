@@ -34,7 +34,7 @@ The app is configured using a custom resources of kind `SlackBot`. For example:
 
 ```
    kind: SlackBot
-   apiVersion: slack.app.jenkins-x.io/v1
+   apiVersion: slack.app.jenkins-x.io/v1alpha1
    metadata:
      name: test-slack-bot
    spec:

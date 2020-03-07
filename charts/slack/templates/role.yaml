@@ -38,7 +38,7 @@ rules:
     - get
     - update
 - apiGroups:
-  - slack.app.jenkins-x-labs.com
+  - slack.app.jenkins-x.io
   resources:
   - slackbots
   verbs:
