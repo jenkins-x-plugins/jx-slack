@@ -19,14 +19,25 @@ type SlackUserResolver struct {
 
 // SlackUserLogin returns the login for the slack provider, or an empty string if not found
 func (r *SlackUserResolver) SlackUserLogin(user *jenkinsv1.User) (string, error) {
+
 	for _, a := range user.Spec.Accounts {
 		if a.Provider == r.SlackProviderKey() {
 			return a.ID, nil
 		}
 	}
 	if user.Spec.Email != "" {
+
 		// Attempt to lookup by email and associate
-		slackUser, err := r.SlackClient.GetUserByEmail(user.Spec.Email)
+		//todo lets change this to read from a file which can be mounted via secret or configmap
+		var email = user.Spec.Email
+		if email == "rawlingsj80@gmail.com" {
+			email = "jrawlings@cloudbees.com"
+		} else {
+			if email == "james.strachan@gmail.com" {
+				email = "jstrachan@cloudbees.com"
+			}
+		}
+		slackUser, err := r.SlackClient.GetUserByEmail(email)
 		if err != nil {
 			if err.Error() == "users_not_found" {
 				// Ignore users_not_found as this just means we return an empty string
