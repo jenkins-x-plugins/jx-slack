@@ -35,3 +35,4 @@ terminationGracePeriodSeconds: 10
 slack:
   hmacToken:
     Name: REPLACE_ME
+googleSecretsManager: false

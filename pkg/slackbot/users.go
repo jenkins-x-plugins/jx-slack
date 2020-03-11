@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	userMappingfile = "/secrets/users/mapping.yaml"
+	userMappingfile = "/secrets/users/mapping.txt"
 )
 
 // SlackUserResolver allows slack users to be converted to Jenkins X users

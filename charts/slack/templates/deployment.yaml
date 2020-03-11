@@ -57,5 +57,12 @@ spec:
         {{- else }}
           value: {{ template "fullname" . }}
         {{- end }}
+        volumeMounts:
+          - mountPath: /secrets/users
+            name: users
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       serviceAccountName: {{ template "fullname" . }}
+      volumes:
+      - name: users
+        secret:
+          secretName: slack-users
