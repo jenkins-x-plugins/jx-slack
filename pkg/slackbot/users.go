@@ -46,5 +46,5 @@ func (r *SlackUserResolver) SlackUserLogin(user *jenkinsv1.User) (string, error)
 
 // SlackProviderKey returns the provider key for this SlackUserResolver
 func (r *SlackUserResolver) SlackProviderKey() string {
-	return fmt.Sprintf("slack.apps.jenkins-x-labs.com/userid")
+	return fmt.Sprintf("slack.apps.jenkins-x.com/userid")
 }
