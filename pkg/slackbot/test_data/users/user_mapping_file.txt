@@ -1,0 +1,2 @@
+wine@yummy.com:grapes@yummy.com
+beer@yummy.com:margarita@yummy.com

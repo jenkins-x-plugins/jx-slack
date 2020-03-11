@@ -1,7 +1,12 @@
 package slackbot
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
+
+	"github.com/jenkins-x/jx/pkg/log"
 
 	"github.com/pkg/errors"
 
@@ -12,11 +17,16 @@ import (
 	jenkninsv1client "github.com/jenkins-x/jx/pkg/client/clientset/versioned"
 )
 
+const (
+	userMappingfile = "/secrets/users/mapping.yaml"
+)
+
 // SlackUserResolver allows slack users to be converted to Jenkins X users
 type SlackUserResolver struct {
-	SlackClient *slack.Client
-	JXClient    jenkninsv1client.Interface
-	Namespace   string
+	SlackClient  *slack.Client
+	JXClient     jenkninsv1client.Interface
+	Namespace    string
+	UserMappings map[string]string
 }
 
 // SlackUserLogin returns the login for the slack provider, or an empty string if not found
@@ -29,8 +39,12 @@ func (r *SlackUserResolver) SlackUserLogin(user *jenkinsv1.User) (string, error)
 	if user.Spec.Email != "" {
 
 		// Attempt to lookup by email and associate
-		//todo lets change this to read from a file which can be mounted via secret or configmap
-		var email = user.Spec.Email
+		email, err := r.getSlackEmailFromMapping(user.Spec.Email, userMappingfile)
+		if err != nil {
+			// user may have the same email address in both git and slack to try that if no explicit mapping
+			email = user.Spec.Email
+			log.Logger().Warnf("no mapped email address so using git user email %s to find id in slack", email)
+		}
 		slackUser, err := r.SlackClient.GetUserByEmail(email)
 		if err != nil {
 			return "", errors.Wrapf(err, "could not find Slack ID using email %s", email)
@@ -48,4 +62,50 @@ func (r *SlackUserResolver) SlackUserLogin(user *jenkinsv1.User) (string, error)
 // SlackProviderKey returns the provider key for this SlackUserResolver
 func (r *SlackUserResolver) SlackProviderKey() string {
 	return fmt.Sprintf("slack.apps.jenkins-x.com/userid")
+}
+
+func (r *SlackUserResolver) getSlackEmailFromMapping(gitUserEmail, fileLocation string) (string, error) {
+	if gitUserEmail == "" {
+		return "", errors.New("no git user email")
+	}
+	if fileLocation == "" {
+		return "", errors.New("no user mapping file location")
+	}
+
+	if r.UserMappings == nil {
+		r.UserMappings = make(map[string]string)
+	}
+
+	if len(r.UserMappings) == 0 {
+		f, err := os.Open(fileLocation)
+		if err != nil {
+			return "", fmt.Errorf("failed to read file %s", fileLocation)
+		}
+		defer func() {
+			if err = f.Close(); err != nil {
+				log.Logger().Errorf("failed to close file %s", fileLocation)
+			}
+		}()
+		s := bufio.NewScanner(f)
+		for s.Scan() {
+
+			emails := strings.Split(s.Text(), ":")
+			if len(emails) != 2 {
+				return "", fmt.Errorf("line should contain two parts GIT_USER_EMAIL:SLACK_USER_EMAIL %s", s.Text())
+			}
+			if r.UserMappings[emails[0]] != "" {
+				return "", fmt.Errorf("duplicate mapping found for git user email %s", emails[0])
+			}
+			r.UserMappings[emails[0]] = emails[1]
+
+		}
+		err = s.Err()
+		if err != nil {
+			return "", errors.Wrapf(err, "failed scanning lines from file %s", fileLocation)
+		}
+	}
+	if r.UserMappings[gitUserEmail] == "" {
+		return "", fmt.Errorf("no slack email found for git user email %s", gitUserEmail)
+	}
+	return r.UserMappings[gitUserEmail], nil
 }
