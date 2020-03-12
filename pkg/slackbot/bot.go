@@ -159,13 +159,11 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 		if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.Orgs, cfg.IgnoreLabels); err != nil {
 			return errors.WithStack(err)
 		} else if enabled {
-			log.Logger().Infof("Preparing pipeline message for %s\n", activity.Name)
 			msg, createIfMissing, err := o.createPipelineMessage(activity, pullRequest)
 			if err != nil {
 				return err
 			}
 			if cfg.Channel != "" {
-				log.Logger().Infof("Channel message %s\n", cfg.Channel)
 				channel := channelName(cfg.Channel)
 				err := o.postMessage(channel, false, pipelineMessageType, activity, nil, msg, createIfMissing)
 				if err != nil {
@@ -175,9 +173,7 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 				log.Logger().Infof("Channel message sent to %s\n", cfg.Channel)
 			}
 			if cfg.DirectMessage {
-				log.Logger().Infof("Direct message configured\n")
 				if pullRequest != nil {
-					log.Logger().Infof("Direct message pull request to %s\n", pullRequest.Author)
 					id, err := o.resolveGitUserToSlackUser(pullRequest.Author, resolver)
 					if err != nil {
 						return errors.Wrapf(err, "Cannot resolve Slack ID for Git user %s", pullRequest.Author)
