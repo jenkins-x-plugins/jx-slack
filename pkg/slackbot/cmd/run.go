@@ -3,6 +3,8 @@ package cmd
 import (
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/jenkins-x/jx/pkg/log"
 
 	slackappapi "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
@@ -20,8 +22,8 @@ type SlackAppRunOptions struct {
 	HmacSecretName string
 	Port           int
 	clients        *slackbot.Clients
-
-	botChannels map[types.UID]chan struct{}
+	Items          []*slackbot.SlackBotOptions
+	botChannels    map[types.UID]chan struct{}
 }
 
 func NewCmdRun() *cobra.Command {
@@ -47,16 +49,17 @@ func NewCmdRun() *cobra.Command {
 }
 
 func (o *SlackAppRunOptions) Run() error {
-
 	var err error
 	o.clients, err = slackbot.CreateClients()
 	if err != nil {
 		return err
 	}
 
+	o.botChannels = make(map[types.UID]chan struct{})
+
 	slackBots := &slackappapi.SlackBot{}
 	_, controller := cache.NewInformer(
-		cache.NewListWatchFromClient(o.clients.SlackAppClient.SlackV1alpha1().RESTClient(), "slackbot", o.clients.Namespace,
+		cache.NewListWatchFromClient(o.clients.SlackAppClient.SlackV1alpha1().RESTClient(), "slackbots", o.clients.Namespace,
 			fields.Everything()),
 		slackBots,
 		time.Minute*10,
@@ -71,10 +74,18 @@ func (o *SlackAppRunOptions) Run() error {
 			},
 		},
 	)
-
 	stop := make(chan struct{})
 	go controller.Run(stop)
 
+	bots := slackbot.SlackBots{
+		Clients:        o.clients,
+		HmacSecretName: o.HmacSecretName,
+		Port:           o.Port,
+	}
+	err = bots.ProwExternalPluginServer()
+	if err != nil {
+		return errors.Wrap(err, "failed to start prow plugin server")
+	}
 	return nil
 }
 
@@ -89,14 +100,10 @@ func (o *SlackAppRunOptions) add(obj interface{}) {
 	if err != nil {
 		log.Logger().Warnf("failed to create slack bot for %s", slackBot.Name)
 	}
-	bot.HmacSecretName = o.HmacSecretName
-	bot.Port = o.Port
 
-	err = bot.ProwExternalPluginServer()
-	if err != nil {
-		log.Logger().Warnf("failed to start prow plugin server %s", slackBot.Name)
-	}
+	o.Items = append(o.Items, &bot)
 
 	// store the channel so we can update or delete it later if the resource gets updated in the cluster
 	o.botChannels[slackBot.UID] = bot.WatchActivities()
+
 }

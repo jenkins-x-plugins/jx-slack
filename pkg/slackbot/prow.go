@@ -17,8 +17,7 @@ import (
 	"k8s.io/test-infra/prow/github"
 )
 
-func (s *SlackBotOptions) ProwExternalPluginServer() error {
-
+func (s *SlackBots) ProwExternalPluginServer() error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		webhookToken, err := s.GetWebHookToken()
 		eventType, eventGUID, payload, ok, errCode := github.ValidateWebhook(w, r, webhookToken)
@@ -37,7 +36,6 @@ func (s *SlackBotOptions) ProwExternalPluginServer() error {
 			return
 		}
 		fmt.Fprint(w, "Event received. Have a nice day.")
-
 		if err := s.handleEvent(eventType, eventGUID, payload); err != nil {
 			log.Logger().Error("Error parsing event.")
 		}
@@ -48,7 +46,7 @@ func (s *SlackBotOptions) ProwExternalPluginServer() error {
 	return http.ListenAndServe("0.0.0.0:"+strconv.Itoa(s.Port), nil)
 }
 
-func (s *SlackBotOptions) handlePullRequest(pr github.PullRequestEvent) error {
+func (s *SlackBots) handlePullRequest(pr github.PullRequestEvent) error {
 	if pr.Action == github.PullRequestActionReviewRequested || pr.Action == github.
 		PullRequestActionReviewRequestRemoved {
 		// This is the trigger. Working out the correct slack message is a bit tricky,
@@ -62,12 +60,13 @@ func (s *SlackBotOptions) handlePullRequest(pr github.PullRequestEvent) error {
 		if len(acts.Items) > 0 {
 			sort.Sort(byBuildNumber(acts.Items))
 			act := acts.Items[0]
-			// now we can just run the bot for the activity
-			err := s.ReviewRequestMessage(&act)
-			if err != nil {
-				return err
+			// now we can just run the bots for the activity
+			for _, bot := range s.Items {
+				err := bot.ReviewRequestMessage(&act)
+				if err != nil {
+					return err
+				}
 			}
-
 		} else {
 			log.Logger().Warnf("No pipeline activities exist for %s/%s/pr-%d", pr.Repo.Owner.Login, pr.Repo.Name, pr.Number)
 		}
@@ -76,7 +75,7 @@ func (s *SlackBotOptions) handlePullRequest(pr github.PullRequestEvent) error {
 	return nil
 }
 
-func (s *SlackBotOptions) handleEvent(eventType, eventGUID string, payload []byte) error {
+func (s *SlackBots) handleEvent(eventType, eventGUID string, payload []byte) error {
 	switch eventType {
 	case "pull_request":
 		var pr github.PullRequestEvent
@@ -102,7 +101,7 @@ It will notify any reviewers on slack when a PR changes state`,
 	return pluginHelp, nil
 }
 
-func (s *SlackBotOptions) GetWebHookToken() ([]byte, error) {
+func (s *SlackBots) GetWebHookToken() ([]byte, error) {
 	if s.HmacSecretName == "" || s.HmacSecretName == "REPLACE_ME" {
 		// Not configured
 		return nil, nil
