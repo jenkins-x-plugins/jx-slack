@@ -68,7 +68,8 @@ func (o *SlackAppRunOptions) Run() error {
 				o.add(obj)
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				//				o.onObj(newObj)
+				o.delete(oldObj)
+				o.add(newObj)
 			},
 			DeleteFunc: func(obj interface{}) {
 				o.delete(obj)
