@@ -20,7 +20,6 @@ type SlackAppRunOptions struct {
 	HmacSecretName string
 	Port           int
 	clients        *slackbot.Clients
-	bots           *slackbot.SlackBots
 
 	botChannels map[types.UID]chan struct{}
 }
@@ -53,12 +52,6 @@ func (o *SlackAppRunOptions) Run() error {
 	o.clients, err = slackbot.CreateClients()
 	if err != nil {
 		return err
-	}
-
-	o.bots = &slackbot.SlackBots{
-		Clients:        o.clients,
-		HmacSecretName: o.HmacSecretName,
-		Port:           o.Port,
 	}
 
 	slackBots := &slackappapi.SlackBot{}
@@ -96,8 +89,10 @@ func (o *SlackAppRunOptions) add(obj interface{}) {
 	if err != nil {
 		log.Logger().Warnf("failed to create slack bot for %s", slackBot.Name)
 	}
+	bot.HmacSecretName = o.HmacSecretName
+	bot.Port = o.Port
 
-	err = o.bots.ProwExternalPluginServer()
+	err = bot.ProwExternalPluginServer()
 	if err != nil {
 		log.Logger().Warnf("failed to start prow plugin server %s", slackBot.Name)
 	}

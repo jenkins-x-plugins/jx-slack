@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strconv"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/sirupsen/logrus"
 	"k8s.io/test-infra/prow/pluginhelp"
 	"k8s.io/test-infra/prow/pluginhelp/externalplugins"
@@ -15,7 +17,7 @@ import (
 	"k8s.io/test-infra/prow/github"
 )
 
-func (s *SlackBots) ProwExternalPluginServer() error {
+func (s *SlackBotOptions) ProwExternalPluginServer() error {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		webhookToken, err := s.GetWebHookToken()
@@ -46,7 +48,7 @@ func (s *SlackBots) ProwExternalPluginServer() error {
 	return http.ListenAndServe("0.0.0.0:"+strconv.Itoa(s.Port), nil)
 }
 
-func (s *SlackBots) handlePullRequest(pr github.PullRequestEvent) error {
+func (s *SlackBotOptions) handlePullRequest(pr github.PullRequestEvent) error {
 	if pr.Action == github.PullRequestActionReviewRequested || pr.Action == github.
 		PullRequestActionReviewRequestRemoved {
 		// This is the trigger. Working out the correct slack message is a bit tricky,
@@ -61,7 +63,7 @@ func (s *SlackBots) handlePullRequest(pr github.PullRequestEvent) error {
 			sort.Sort(byBuildNumber(acts.Items))
 			act := acts.Items[0]
 			// now we can just run the bot for the activity
-			err := s.bot.ReviewRequestMessage(&act)
+			err := s.ReviewRequestMessage(&act)
 			if err != nil {
 				return err
 			}
@@ -74,7 +76,7 @@ func (s *SlackBots) handlePullRequest(pr github.PullRequestEvent) error {
 	return nil
 }
 
-func (s *SlackBots) handleEvent(eventType, eventGUID string, payload []byte) error {
+func (s *SlackBotOptions) handleEvent(eventType, eventGUID string, payload []byte) error {
 	switch eventType {
 	case "pull_request":
 		var pr github.PullRequestEvent
@@ -94,8 +96,20 @@ func (s *SlackBots) handleEvent(eventType, eventGUID string, payload []byte) err
 
 func helpProvider(enabledRepos []string) (*pluginhelp.PluginHelp, error) {
 	pluginHelp := &pluginhelp.PluginHelp{
-		Description: `The slackbot plugin for jenkins-x-labs Core is used for communicating between PRs and Slack. 
+		Description: `The slackbot plugin for Jenkins X Labs is used for communicating between PRs and Slack. 
 It will notify any reviewers on slack when a PR changes state`,
 	}
 	return pluginHelp, nil
+}
+
+func (s *SlackBotOptions) GetWebHookToken() ([]byte, error) {
+	if s.HmacSecretName == "" || s.HmacSecretName == "REPLACE_ME" {
+		// Not configured
+		return nil, nil
+	}
+	secret, err := s.KubeClient.CoreV1().Secrets(s.Namespace).Get(s.HmacSecretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return secret.Data["hmac"], nil
 }

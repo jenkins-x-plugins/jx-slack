@@ -44,13 +44,9 @@ type SlackBotOptions struct {
 	Orgs              []slackapp.Org
 	Timestamps        map[string]map[string]*MessageReference
 	SlackUserResolver *SlackUserResolver
-}
 
-type SlackBots struct {
-	*Clients
 	HmacSecretName string
 	Port           int
-	bot            *SlackBotOptions
 }
 
 func createSlackAppClient(f cmd.Factory) (v1client.Interface, string, error) {
@@ -139,16 +135,4 @@ func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (SlackBotOptions, e
 	}
 
 	return slackBotOpts, nil
-}
-
-func (s *SlackBots) GetWebHookToken() ([]byte, error) {
-	if s.HmacSecretName == "" || s.HmacSecretName == "REPLACE_ME" {
-		// Not configured
-		return nil, nil
-	}
-	secret, err := s.KubeClient.CoreV1().Secrets(s.Namespace).Get(s.HmacSecretName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return secret.Data["hmac"], nil
 }
