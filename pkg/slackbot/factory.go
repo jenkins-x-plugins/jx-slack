@@ -104,6 +104,7 @@ func CreateClients() (*Clients, error) {
 	}, nil
 }
 
+// CreateSlackBot configures a SlackBot
 func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (SlackBotOptions, error) {
 	slackBotOpts := SlackBotOptions{}
 	// Fetch the resource reference for the token

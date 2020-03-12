@@ -19,7 +19,7 @@ import (
 
 func (s *SlackBots) ProwExternalPluginServer() error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		webhookToken, err := s.GetWebHookToken()
+		webhookToken, err := s.getWebHookToken()
 		eventType, eventGUID, payload, ok, errCode := github.ValidateWebhook(w, r, webhookToken)
 		if !ok {
 			if errCode == 200 {
@@ -101,7 +101,7 @@ It will notify any reviewers on slack when a PR changes state`,
 	return pluginHelp, nil
 }
 
-func (s *SlackBots) GetWebHookToken() ([]byte, error) {
+func (s *SlackBots) getWebHookToken() ([]byte, error) {
 	if s.HmacSecretName == "" || s.HmacSecretName == "REPLACE_ME" {
 		// Not configured
 		return nil, nil

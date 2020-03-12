@@ -18,6 +18,7 @@ func (c *Clients) getPipelineActivities(org string, repo string, prn int) (*jenk
 	})
 }
 
+// WatchActivities watches for pipeline activities
 func (o *SlackBotOptions) WatchActivities() chan struct{} {
 
 	jxClient := o.JXClient

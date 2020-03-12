@@ -31,7 +31,6 @@ spec:
         ]
         ports:
         - containerPort: {{ .Values.service.internalPort }}
-# commented out while we figure out if prow is started before before adding a SlackBot crd
         livenessProbe:
           httpGet:
             path: {{ .Values.probePath }}
