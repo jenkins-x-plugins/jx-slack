@@ -60,13 +60,12 @@ func (s *SlackBots) handlePullRequest(pr github.PullRequestEvent) error {
 		if len(acts.Items) > 0 {
 			sort.Sort(byBuildNumber(acts.Items))
 			act := acts.Items[0]
-			// now we can just run the bots for the activity
-			for _, bot := range s.Items {
-				err := bot.ReviewRequestMessage(&act)
-				if err != nil {
-					return err
-				}
+			// now we can just run the bot for the activity
+			err := s.bot.ReviewRequestMessage(&act)
+			if err != nil {
+				return err
 			}
+
 		} else {
 			log.Logger().Warnf("No pipeline activities exist for %s/%s/pr-%d", pr.Repo.Owner.Login, pr.Repo.Name, pr.Number)
 		}

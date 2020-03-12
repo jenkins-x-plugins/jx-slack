@@ -49,8 +49,8 @@ type SlackBotOptions struct {
 type SlackBots struct {
 	*Clients
 	HmacSecretName string
-	Items          []*SlackBotOptions
 	Port           int
+	bot            *SlackBotOptions
 }
 
 func createSlackAppClient(f cmd.Factory) (v1client.Interface, string, error) {
@@ -101,71 +101,44 @@ func CreateClients() (*Clients, error) {
 	}, nil
 }
 
-func CreateSlackBots(hmacSecretName string, port int) (*SlackBots, error) {
-	if hmacSecretName == "" {
-		hmacSecretName = DefaultHmacSecretName
+func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (SlackBotOptions, error) {
+	slackBotOpts := SlackBotOptions{}
+	// Fetch the resource reference for the token
+	if slackBot.Spec.TokenReference.Kind != "Secret" {
+		return slackBotOpts, fmt.Errorf("expected token of kind Secret but got %s for %s", slackBot.Spec.TokenReference.Kind,
+			slackBot.Name)
 	}
-	if port == 0 {
-		port = DefaultPort
-	}
-	c, err := CreateClients()
+	secret, err := c.KubeClient.CoreV1().Secrets(c.Namespace).Get(slackBot.Spec.TokenReference.Name, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
-	}
-	// TODO make this a watch
-	slackBots, err := c.SlackAppClient.SlackV1alpha1().SlackBots(c.Namespace).List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
+		return slackBotOpts, err
 	}
 
-	optionsList := make([]*SlackBotOptions, 0)
-
-	for _, slackBot := range slackBots.Items {
-		// Fetch the resource reference for the token
-		if slackBot.Spec.TokenReference.Kind != "Secret" {
-			return nil, fmt.Errorf("expected token of kind Secret but got %s for %s", slackBot.Spec.TokenReference.Kind,
-				slackBot.Name)
-		}
-		secret, err := c.KubeClient.CoreV1().Secrets(c.Namespace).Get(slackBot.Spec.TokenReference.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		token, ok := secret.Data["token"]
-		if !ok {
-			return nil, fmt.Errorf("expected key token in field data")
-		}
-
-		watchNs := c.Namespace
-		if slackBot.Spec.Namespace != "" {
-			watchNs = slackBot.Spec.Namespace
-		}
-
-		slackClient := slack.New(string(token))
-		options := SlackBotOptions{
-			Clients:     c,
-			Namespace:   watchNs,
-			SlackClient: slackClient,
-
-			PullRequests: slackBot.Spec.PullRequests,
-			Pipelines:    slackBot.Spec.Pipelines,
-			Statuses:     slackBot.Spec.Statuses,
-			Timestamps:   make(map[string]map[string]*MessageReference, 0),
-			SlackUserResolver: &SlackUserResolver{
-				JXClient:    c.JXClient,
-				Namespace:   c.Namespace,
-				SlackClient: slackClient,
-			},
-		}
-		optionsList = append(optionsList, &options)
-
+	token, ok := secret.Data["token"]
+	if !ok {
+		return slackBotOpts, fmt.Errorf("expected key token in field data")
 	}
-	return &SlackBots{
-		Clients:        c,
-		HmacSecretName: hmacSecretName,
-		Port:           port,
-		Items:          optionsList,
-	}, nil
+
+	watchNs := c.Namespace
+	if slackBot.Spec.Namespace != "" {
+		watchNs = slackBot.Spec.Namespace
+	}
+
+	slackClient := slack.New(string(token))
+
+	slackBotOpts.Clients = c
+	slackBotOpts.Namespace = watchNs
+	slackBotOpts.SlackClient = slackClient
+	slackBotOpts.PullRequests = slackBot.Spec.PullRequests
+	slackBotOpts.Pipelines = slackBot.Spec.Pipelines
+	slackBotOpts.Statuses = slackBot.Spec.Statuses
+	slackBotOpts.Timestamps = make(map[string]map[string]*MessageReference, 0)
+	slackBotOpts.SlackUserResolver = &SlackUserResolver{
+		JXClient:    c.JXClient,
+		Namespace:   c.Namespace,
+		SlackClient: slackClient,
+	}
+
+	return slackBotOpts, nil
 }
 
 func (s *SlackBots) GetWebHookToken() ([]byte, error) {

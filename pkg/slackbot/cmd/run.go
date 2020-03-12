@@ -1,9 +1,17 @@
 package cmd
 
 import (
+	"time"
+
+	"github.com/jenkins-x/jx/pkg/log"
+
+	slackappapi "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
 	"github.com/jenkins-x-labs/slack/pkg/slackbot"
 	jxcmd "github.com/jenkins-x/jx/pkg/cmd/helper"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/cache"
 )
 
 type SlackAppRunOptions struct {
@@ -11,6 +19,10 @@ type SlackAppRunOptions struct {
 	Args           []string
 	HmacSecretName string
 	Port           int
+	clients        *slackbot.Clients
+	bots           *slackbot.SlackBots
+
+	botChannels map[types.UID]chan struct{}
 }
 
 func NewCmdRun() *cobra.Command {
@@ -37,13 +49,59 @@ func NewCmdRun() *cobra.Command {
 
 func (o *SlackAppRunOptions) Run() error {
 
-	bots, err := slackbot.CreateSlackBots(o.HmacSecretName, o.Port)
+	var err error
+	o.clients, err = slackbot.CreateClients()
 	if err != nil {
 		return err
 	}
-	err = bots.Run()
-	if err != nil {
-		return err
+
+	o.bots = &slackbot.SlackBots{
+		Clients:        o.clients,
+		HmacSecretName: o.HmacSecretName,
+		Port:           o.Port,
 	}
-	return bots.ProwExternalPluginServer()
+
+	slackBots := &slackappapi.SlackBot{}
+	_, controller := cache.NewInformer(
+		cache.NewListWatchFromClient(o.clients.SlackAppClient.SlackV1alpha1().RESTClient(), "slackbot", o.clients.Namespace,
+			fields.Everything()),
+		slackBots,
+		time.Minute*10,
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				o.add(obj)
+			},
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				//				o.onObj(newObj)
+			},
+			DeleteFunc: func(obj interface{}) {
+			},
+		},
+	)
+
+	stop := make(chan struct{})
+	go controller.Run(stop)
+
+	return nil
+}
+
+func (o *SlackAppRunOptions) add(obj interface{}) {
+	slackBot, ok := obj.(*slackappapi.SlackBot)
+	if !ok {
+		log.Logger().Infof("Object is not a PipelineActivity %#v\n", obj)
+		return
+	}
+
+	bot, err := slackbot.CreateSlackBot(o.clients, slackBot)
+	if err != nil {
+		log.Logger().Warnf("failed to create slack bot for %s", slackBot.Name)
+	}
+
+	err = o.bots.ProwExternalPluginServer()
+	if err != nil {
+		log.Logger().Warnf("failed to start prow plugin server %s", slackBot.Name)
+	}
+
+	// store the channel so we can update or delete it later if the resource gets updated in the cluster
+	o.botChannels[slackBot.UID] = bot.WatchActivities()
 }

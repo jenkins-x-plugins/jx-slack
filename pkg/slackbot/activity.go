@@ -18,17 +18,7 @@ func (c *Clients) getPipelineActivities(org string, repo string, prn int) (*jenk
 	})
 }
 
-func (b *SlackBots) Run() error {
-	for _, o := range b.Items {
-		err := o.watchActivities()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (o *SlackBotOptions) watchActivities() error {
+func (o *SlackBotOptions) WatchActivities() chan struct{} {
 
 	jxClient := o.JXClient
 
@@ -54,7 +44,8 @@ func (o *SlackBotOptions) watchActivities() error {
 
 	stop := make(chan struct{})
 	go controller.Run(stop)
-	return nil
+
+	return stop
 }
 
 func (o *SlackBotOptions) onObj(obj interface{}) {
