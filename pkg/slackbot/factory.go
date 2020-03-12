@@ -13,7 +13,6 @@ import (
 	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	opts "github.com/jenkins-x/jx/pkg/cmd/opts"
 	"github.com/jenkins-x/jx/pkg/kube"
-	"github.com/jenkins-x/jx/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -106,14 +105,12 @@ func CreateClients() (*Clients, error) {
 }
 
 func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (SlackBotOptions, error) {
-	log.Logger().Info("a")
 	slackBotOpts := SlackBotOptions{}
 	// Fetch the resource reference for the token
 	if slackBot.Spec.TokenReference.Kind != "Secret" {
 		return slackBotOpts, fmt.Errorf("expected token of kind Secret but got %s for %s", slackBot.Spec.TokenReference.Kind,
 			slackBot.Name)
 	}
-	log.Logger().Info("b")
 	secret, err := c.KubeClient.CoreV1().Secrets(c.Namespace).Get(slackBot.Spec.TokenReference.Name, metav1.GetOptions{})
 	if err != nil {
 		return slackBotOpts, err
@@ -123,14 +120,12 @@ func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (SlackBotOptions, e
 	if !ok {
 		return slackBotOpts, fmt.Errorf("expected key token in field data")
 	}
-	log.Logger().Info("c")
 	watchNs := c.Namespace
 	if slackBot.Spec.Namespace != "" {
 		watchNs = slackBot.Spec.Namespace
 	}
 
 	slackClient := slack.New(string(token))
-	log.Logger().Info("d")
 	slackBotOpts.Clients = c
 	slackBotOpts.Namespace = watchNs
 	slackBotOpts.SlackClient = slackClient
@@ -143,6 +138,5 @@ func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (SlackBotOptions, e
 		Namespace:   c.Namespace,
 		SlackClient: slackClient,
 	}
-	log.Logger().Info("e")
 	return slackBotOpts, nil
 }
