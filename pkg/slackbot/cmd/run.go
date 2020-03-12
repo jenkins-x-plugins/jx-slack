@@ -71,6 +71,7 @@ func (o *SlackAppRunOptions) Run() error {
 				//				o.onObj(newObj)
 			},
 			DeleteFunc: func(obj interface{}) {
+				o.delete(obj)
 			},
 		},
 	)
@@ -106,4 +107,20 @@ func (o *SlackAppRunOptions) add(obj interface{}) {
 	// store the channel so we can update or delete it later if the resource gets updated in the cluster
 	o.botChannels[slackBot.UID] = bot.WatchActivities()
 
+}
+
+func (o *SlackAppRunOptions) delete(obj interface{}) {
+	slackBot, ok := obj.(*slackappapi.SlackBot)
+	if !ok {
+		log.Logger().Infof("Object is not a PipelineActivity %#v\n", obj)
+		return
+	}
+	if o.botChannels[slackBot.UID] != nil {
+		close(o.botChannels[slackBot.UID])
+		log.Logger().Info("SlackBot channel closed successfully")
+		delete(o.botChannels, slackBot.UID)
+		log.Logger().Infof("SlackBot %s deleted", slackBot.Name)
+	} else {
+		log.Logger().Warnf("No SlackBot named %s found so not deleted", slackBot.Name)
+	}
 }
