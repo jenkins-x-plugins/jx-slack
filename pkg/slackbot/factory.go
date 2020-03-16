@@ -21,7 +21,7 @@ const (
 	DefaultPort           = 8080
 )
 
-type Clients struct {
+type GlobalClients struct {
 	SlackAppClient v1client.Interface
 	Namespace      string
 	KubeClient     kubernetes.Interface
@@ -36,7 +36,7 @@ type slackWrapper struct{}
 
 // SlackBotOptions contains options for the SlackBot
 type SlackBotOptions struct {
-	*Clients
+	*GlobalClients
 
 	SlackClient       *slack.Client
 	Pipelines         []slackapp.SlackBotMode
@@ -52,7 +52,7 @@ type SlackBotOptions struct {
 }
 
 type SlackBots struct {
-	*Clients
+	*GlobalClients
 	HmacSecretName string
 	Items          []*SlackBotOptions
 	Port           int
@@ -76,7 +76,7 @@ func createSlackAppClient(f cmd.Factory) (v1client.Interface, string, error) {
 	return client, ns, err
 }
 
-func CreateClients() (*Clients, error) {
+func CreateClients() (*GlobalClients, error) {
 	factory := cmd.NewFactory()
 
 	slackAppClient, ns, err := createSlackAppClient(factory)
@@ -96,7 +96,7 @@ func CreateClients() (*Clients, error) {
 
 	commonOptions := opts.NewCommonOptionsWithFactory(factory)
 
-	return &Clients{
+	return &GlobalClients{
 		SlackAppClient: slackAppClient,
 		Namespace:      ns,
 		KubeClient:     kubeClient,
@@ -107,7 +107,7 @@ func CreateClients() (*Clients, error) {
 }
 
 // CreateSlackBot configures a SlackBot
-func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (*SlackBotOptions, error) {
+func CreateSlackBot(c *GlobalClients, slackBot *slackapp.SlackBot) (*SlackBotOptions, error) {
 
 	// Fetch the resource reference for the token
 	if slackBot.Spec.TokenReference.Kind != "Secret" {
@@ -133,7 +133,7 @@ func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (*SlackBotOptions, 
 	userResolver := NewSlackUserResolver(slackClient, c.JXClient, watchNs)
 
 	return &SlackBotOptions{
-		Clients:           c,
+		GlobalClients:     c,
 		SlackClient:       slackClient,
 		Pipelines:         slackBot.Spec.Pipelines,
 		PullRequests:      slackBot.Spec.PullRequests,

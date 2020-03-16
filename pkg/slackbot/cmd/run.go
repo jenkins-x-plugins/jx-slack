@@ -21,7 +21,7 @@ type SlackAppRunOptions struct {
 	Args           []string
 	HmacSecretName string
 	Port           int
-	clients        *slackbot.Clients
+	clients        *slackbot.GlobalClients
 	Items          []*slackbot.SlackBotOptions
 	botChannels    map[types.UID]chan struct{}
 }
@@ -80,7 +80,7 @@ func (o *SlackAppRunOptions) Run() error {
 	go controller.Run(stop)
 
 	bots := slackbot.SlackBots{
-		Clients:        o.clients,
+		GlobalClients:  o.clients,
 		HmacSecretName: o.HmacSecretName,
 		Port:           o.Port,
 	}

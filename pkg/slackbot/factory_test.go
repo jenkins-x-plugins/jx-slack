@@ -29,7 +29,7 @@ func TestCreateSlackBot(t *testing.T) {
 	}
 	fakeclient := fake.NewSimpleClientset(secret)
 
-	clients := &Clients{
+	clients := &GlobalClients{
 		KubeClient: fakeclient,
 	}
 
