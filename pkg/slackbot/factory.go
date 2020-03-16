@@ -28,7 +28,7 @@ type GlobalClients struct {
 	KubeClient     kubernetes.Interface
 	JXClient       jenkinsv1client.Interface
 	Factory        cmd.Factory
-	slackClient
+	slackClientHelper
 	// TODO not great but needed until Git Provider stuff is better unwound...
 	CommonOptions *opts.CommonOptions
 }
@@ -99,17 +99,17 @@ func CreateClients() (*GlobalClients, error) {
 	commonOptions := opts.NewCommonOptionsWithFactory(factory)
 
 	return &GlobalClients{
-		SlackAppClient: slackAppClient,
-		Namespace:      ns,
-		KubeClient:     kubeClient,
-		JXClient:       jxClient,
-		Factory:        factory,
-		CommonOptions:  &commonOptions,
-		slackClient:    &slackWrapper{},
+		SlackAppClient:    slackAppClient,
+		Namespace:         ns,
+		KubeClient:        kubeClient,
+		JXClient:          jxClient,
+		Factory:           factory,
+		CommonOptions:     &commonOptions,
+		slackClientHelper: &slackWrapper{},
 	}, nil
 }
 
-type slackClient interface {
+type slackClientHelper interface {
 	getSlackClient(token string, options ...slack.Option) *slack.Client
 }
 
