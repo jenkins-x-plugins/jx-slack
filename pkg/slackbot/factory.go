@@ -105,21 +105,21 @@ func CreateClients() (*Clients, error) {
 }
 
 // CreateSlackBot configures a SlackBot
-func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (SlackBotOptions, error) {
-	slackBotOpts := SlackBotOptions{}
+func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (*SlackBotOptions, error) {
+
 	// Fetch the resource reference for the token
 	if slackBot.Spec.TokenReference.Kind != "Secret" {
-		return slackBotOpts, fmt.Errorf("expected token of kind Secret but got %s for %s", slackBot.Spec.TokenReference.Kind,
+		return nil, fmt.Errorf("expected token of kind Secret but got %s for %s", slackBot.Spec.TokenReference.Kind,
 			slackBot.Name)
 	}
 	secret, err := c.KubeClient.CoreV1().Secrets(c.Namespace).Get(slackBot.Spec.TokenReference.Name, metav1.GetOptions{})
 	if err != nil {
-		return slackBotOpts, err
+		return nil, err
 	}
 
 	token, ok := secret.Data["token"]
 	if !ok {
-		return slackBotOpts, fmt.Errorf("expected key token in field data")
+		return nil, fmt.Errorf("expected key token in field data")
 	}
 	watchNs := c.Namespace
 	if slackBot.Spec.Namespace != "" {
@@ -127,17 +127,18 @@ func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (SlackBotOptions, e
 	}
 
 	slackClient := slack.New(string(token))
-	slackBotOpts.Clients = c
-	slackBotOpts.Namespace = watchNs
-	slackBotOpts.SlackClient = slackClient
-	slackBotOpts.PullRequests = slackBot.Spec.PullRequests
-	slackBotOpts.Pipelines = slackBot.Spec.Pipelines
-	slackBotOpts.Statuses = slackBot.Spec.Statuses
-	slackBotOpts.Timestamps = make(map[string]map[string]*MessageReference, 0)
-	slackBotOpts.SlackUserResolver = &SlackUserResolver{
-		JXClient:    c.JXClient,
-		Namespace:   c.Namespace,
-		SlackClient: slackClient,
-	}
-	return slackBotOpts, nil
+	return &SlackBotOptions{
+		Clients:      c,
+		SlackClient:  slackClient,
+		Pipelines:    slackBot.Spec.Pipelines,
+		PullRequests: slackBot.Spec.PullRequests,
+		Namespace:    watchNs,
+		Statuses:     slackBot.Spec.Statuses,
+		Timestamps:   make(map[string]map[string]*MessageReference, 0),
+		SlackUserResolver: &SlackUserResolver{
+			JXClient:    c.JXClient,
+			Namespace:   c.Namespace,
+			SlackClient: slackClient,
+		},
+	}, nil
 }
