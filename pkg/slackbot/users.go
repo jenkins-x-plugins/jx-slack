@@ -29,6 +29,7 @@ type SlackUserResolver struct {
 	UserMappings map[string]string
 }
 
+// NewSlackUserResolver creates a new struct to work with resolving slack user details
 func NewSlackUserResolver(slackClient *slack.Client, jenkinsClient jenkninsv1client.Interface, namespace string) SlackUserResolver {
 	return SlackUserResolver{
 		SlackClient: slackClient,

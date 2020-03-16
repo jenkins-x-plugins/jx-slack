@@ -40,8 +40,8 @@ func TestCreateSlackBot(t *testing.T) {
 		want     *slack.Client
 		wantErr  bool
 	}{
-		{name: "good_slack_bot", slackBot: getSlackBot(secretName), want: slack.New(testToken), wantErr: false},
-		{name: "good_slack_bot", slackBot: getSlackBot("does_not_exist"), want: nil, wantErr: true},
+		{name: "secret_does_exist", slackBot: getSlackBot(secretName), want: clients.slackClient.getSlackClient(testToken), wantErr: false},
+		{name: "secret_does_not_exist", slackBot: getSlackBot("does_not_exist"), want: nil, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

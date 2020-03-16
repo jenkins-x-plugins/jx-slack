@@ -1317,6 +1317,7 @@ k8s.io/code-generator v0.0.0-20181017053441-8c97d6ab64da/go.mod h1:MYiN+ZJZ9HkET
 k8s.io/code-generator v0.0.0-20190416052311-01a054e913a9/go.mod h1:6a07iUCUWB1tykSctOVKTgzqTeUuHn5KrusWzAYtRFY=
 k8s.io/code-generator v0.17.3 h1:q/hDMk2cvFzSxol7k/VA1qCssR7VSMXHQHhzuX29VJ8=
 k8s.io/code-generator v0.17.3/go.mod h1:l8BLVwASXQZTo2xamW5mQNFCe1XPiAesVq7Y1t7PiQQ=
+k8s.io/code-generator v0.17.4 h1:C3uu/IvQclEIO4ouUOXuoKWfc4765mYe0uebStg9CaY=
 k8s.io/component-base v0.17.4 h1:H9cdWZyiGVJfWmWIcHd66IsNBWTk1iEgU7D4kJksEnw=
 k8s.io/component-base v0.17.4/go.mod h1:5BRqHMbbQPm2kKu35v3G+CpVq4K0RJKC7TRioF0I9lE=
 k8s.io/gengo v0.0.0-20180718083919-906d99f89cd6 h1:24nBVU2mLTluInk9yc+UzGJbjQj/Ment+BZdS0Sjqxs=

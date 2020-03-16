@@ -21,6 +21,7 @@ const (
 	DefaultPort           = 8080
 )
 
+// GlobalClients are a set of clients shared for each SlackBot
 type GlobalClients struct {
 	SlackAppClient v1client.Interface
 	Namespace      string
@@ -76,6 +77,7 @@ func createSlackAppClient(f cmd.Factory) (v1client.Interface, string, error) {
 	return client, ns, err
 }
 
+// CreateClients creates the default global clients
 func CreateClients() (*GlobalClients, error) {
 	factory := cmd.NewFactory()
 
