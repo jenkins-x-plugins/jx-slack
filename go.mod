@@ -8,12 +8,12 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/jenkins-x/jx v1.3.1119
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
-	github.com/nlopes/slack v0.0.0-20180721202243-347a74b1ea30
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/common v0.4.1
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5 // indirect
 	github.com/sirupsen/logrus v1.4.2
+	github.com/slack-go/slack v0.6.3
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	gopkg.in/square/go-jose.v2 v2.4.1 // indirect

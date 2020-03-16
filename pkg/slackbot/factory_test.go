@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -30,7 +30,8 @@ func TestCreateSlackBot(t *testing.T) {
 	fakeclient := fake.NewSimpleClientset(secret)
 
 	clients := &GlobalClients{
-		KubeClient: fakeclient,
+		KubeClient:  fakeclient,
+		slackClient: &fakeSlackClient{},
 	}
 
 	tests := []struct {

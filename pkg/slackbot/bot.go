@@ -26,7 +26,7 @@ import (
 
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 /*
@@ -159,13 +159,13 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 		if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.Orgs, cfg.IgnoreLabels); err != nil {
 			return errors.WithStack(err)
 		} else if enabled {
-			msg, createIfMissing, err := o.createPipelineMessage(activity, pullRequest)
+			attachments, createIfMissing, err := o.createPipelineMessage(activity, pullRequest)
 			if err != nil {
 				return err
 			}
 			if cfg.Channel != "" {
 				channel := channelName(cfg.Channel)
-				err := o.postMessage(channel, false, pipelineMessageType, activity, nil, msg, createIfMissing)
+				err := o.postMessage(channel, false, pipelineMessageType, activity, nil, attachments, createIfMissing)
 				if err != nil {
 					return errors.Wrap(err, fmt.Sprintf("error posting cfg for %s to channel %s", activity.Name,
 						channel))
@@ -179,7 +179,7 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 						return errors.Wrapf(err, "Cannot resolve Slack ID for Git user %s", pullRequest.Author)
 					}
 					if id != "" {
-						err = o.postMessage(id, true, pipelineMessageType, activity, nil, msg, createIfMissing)
+						err = o.postMessage(id, true, pipelineMessageType, activity, nil, attachments, createIfMissing)
 						if err != nil {
 							return errors.Wrap(err, fmt.Sprintf("error sending direct pipeline for %s to %s", activity.Name,
 								id))
@@ -230,7 +230,7 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 					oldestActivity = activity
 				}
 				if buildNumber >= latestBuildNumber {
-					msg, reviewers, buildStatus, err := o.createReviewersMessage(activity, cfg.NotifyReviewers,
+					attachments, reviewers, buildStatus, err := o.createReviewersMessage(activity, cfg.NotifyReviewers,
 						pullRequest, resolver)
 					if err != nil {
 						return err
@@ -239,11 +239,11 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 					if buildStatus == defaultStatuses.Merged || buildStatus == defaultStatuses.Closed {
 						createIfMissing = false
 					}
-					if msg != nil {
+					if attachments != nil {
 						if cfg.Channel != "" {
 							channel := channelName(cfg.Channel)
 							err := o.postMessage(channel, false, pullRequestReviewMessageType, oldestActivity,
-								all, msg, createIfMissing)
+								all, attachments, createIfMissing)
 							if err != nil {
 								return errors.Wrap(err, fmt.Sprintf("error posting PR review request for %s to channel %s",
 									activity.Name,
@@ -254,7 +254,7 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 							for _, user := range reviewers {
 								if user != nil {
 									err = o.postMessage(user.ID, true, pullRequestReviewMessageType, oldestActivity,
-										all, msg, createIfMissing)
+										all, attachments, createIfMissing)
 									if err != nil {
 										return errors.Wrap(err, fmt.Sprintf("error sending direct PR review request for %s to %s",
 											activity.Name,
@@ -329,15 +329,12 @@ func getStatus(overrideStatus *slackapp.Status, defaultStatus *slackapp.Status) 
 }
 
 // createReviewersMessage will return a slackapp message notifying reviewers of a PR, or nil if the activity is not a PR
-func (o *SlackBotOptions) createReviewersMessage(activity *jenkinsv1.PipelineActivity,
-	notifyReviewers bool, pr *gits.GitPullRequest, resolver *users.GitUserResolver) (*slack.PostMessageParameters,
-	[]*slack.User, *slackapp.Status, error) {
+func (o *SlackBotOptions) createReviewersMessage(activity *jenkinsv1.PipelineActivity, notifyReviewers bool, pr *gits.GitPullRequest, resolver *users.GitUserResolver) ([]slack.Attachment, []*slack.User, *slackapp.Status, error) {
 	author, err := resolver.Resolve(pr.Author)
 	if err != nil {
 		return nil, nil, nil, errors.WithStack(err)
 	}
 	if pr != nil {
-		params := slack.PostMessageParameters{}
 		attachments := []slack.Attachment{}
 		actions := []slack.AttachmentAction{}
 		fallback := []string{}
@@ -430,7 +427,7 @@ func (o *SlackBotOptions) createReviewersMessage(activity *jenkinsv1.PipelineAct
 			repositoryName(activity),
 			authorName)
 		attachment := slack.Attachment{
-			CallbackID: "prreview:" + activity.Name,
+			CallbackID: "preview:" + activity.Name,
 			Color:      attachmentColor(status),
 			Text:       messageText,
 
@@ -454,8 +451,7 @@ func (o *SlackBotOptions) createReviewersMessage(activity *jenkinsv1.PipelineAct
 
 		attachments = append(attachments, attachment)
 
-		params.Attachments = attachments
-		return &params, reviewers, buildStatus, nil
+		return attachments, reviewers, buildStatus, nil
 	}
 	return nil, nil, nil, nil
 }
@@ -490,9 +486,7 @@ func containsOneOf(a []*gits.Label, x ...string) bool {
 	return false
 }
 
-func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActivity,
-	pr *gits.GitPullRequest) (*slack.PostMessageParameters,
-	bool, error) {
+func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActivity, pr *gits.GitPullRequest) ([]slack.Attachment, bool, error) {
 	spec := &activity.Spec
 	status := pipelineStatus(activity)
 	icon := pipelineIcon(status)
@@ -508,7 +502,6 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 	}
 	messageText = fmt.Sprintf("%s (Build %s)", messageText, buildNumber(spec))
 
-	params := slack.PostMessageParameters{}
 	attachments := []slack.Attachment{}
 	actions := []slack.AttachmentAction{}
 	versionPrefix := spec.Version
@@ -575,8 +568,7 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 		}
 	}
 
-	params.Attachments = attachments
-	return &params, createIfMissing, nil
+	return attachments, createIfMissing, nil
 }
 
 func (o *SlackBotOptions) getSlackUserID(gitUser *gits.GitUser, resolver *users.GitUserResolver) (string, error) {
@@ -601,7 +593,7 @@ func getPullRequestNumber(activity *jenkinsv1.PipelineActivity) (int, error) {
 }
 
 func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messageType string,
-	activity *jenkinsv1.PipelineActivity, all []jenkinsv1.PipelineActivity, params *slack.PostMessageParameters,
+	activity *jenkinsv1.PipelineActivity, all []jenkinsv1.PipelineActivity, attachments []slack.Attachment,
 	createIfMissing bool) error {
 	timestamp := ""
 	messageRef := o.findMessageRefViaAnnotations(activity, channel, messageType)
@@ -621,7 +613,7 @@ func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messag
 	}
 	//channelID, timestamp, err := o.SlackClient.PostMessage(o.Channels, messageText, params, slackbot.MsgOptionUpdate(timestamp))
 	options := []slack.MsgOption{
-		slack.MsgOptionAttachments(params.Attachments...),
+		slack.MsgOptionAttachments(attachments...),
 	}
 	if directMessage {
 		channel, _, _, err := o.SlackClient.OpenConversation(&slack.OpenConversationParameters{

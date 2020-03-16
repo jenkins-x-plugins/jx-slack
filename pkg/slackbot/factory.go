@@ -3,7 +3,7 @@ package slackbot
 import (
 	"fmt"
 
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 
 	"k8s.io/client-go/kubernetes"
 
