@@ -73,3 +73,12 @@ func getSlackBot(secretName string) *slackappapi.SlackBot {
 		},
 	}
 }
+
+type fakeSlackClient struct {
+	*slack.Client
+}
+
+func (f *fakeSlackClient) getSlackClient(token string, options ...slack.Option) *slack.Client {
+	once.Do(startServer)
+	return slack.New(token, slack.OptionAPIURL("http://"+serverAddr+"/"))
+}
