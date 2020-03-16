@@ -8,17 +8,19 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/jenkins-x/jx v1.3.1119
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
-	github.com/nlopes/slack v0.0.0-20180721202243-347a74b1ea30
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/common v0.2.0
+	github.com/prometheus/common v0.4.1
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5 // indirect
-	github.com/sirupsen/logrus v1.4.1
+	github.com/sirupsen/logrus v1.4.2
+	github.com/slack-go/slack v0.6.3
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
-	k8s.io/api v0.17.3
+	gopkg.in/square/go-jose.v2 v2.4.1 // indirect
+	k8s.io/api v0.17.4
 	k8s.io/apiextensions-apiserver v0.0.0-20190718185103-d1ef975d28ce
-	k8s.io/apimachinery v0.17.3
+	k8s.io/apimachinery v0.17.4
+	k8s.io/apiserver v0.17.4 // indirect
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.17.3
 	k8s.io/gengo v0.0.0-20190822140433-26a664648505

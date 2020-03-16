@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strconv"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/sirupsen/logrus"
 	"k8s.io/test-infra/prow/pluginhelp"
 	"k8s.io/test-infra/prow/pluginhelp/externalplugins"
@@ -16,9 +18,8 @@ import (
 )
 
 func (s *SlackBots) ProwExternalPluginServer() error {
-
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		webhookToken, err := s.GetWebHookToken()
+		webhookToken, err := s.getWebHookToken()
 		eventType, eventGUID, payload, ok, errCode := github.ValidateWebhook(w, r, webhookToken)
 		if !ok {
 			if errCode == 200 {
@@ -35,7 +36,6 @@ func (s *SlackBots) ProwExternalPluginServer() error {
 			return
 		}
 		fmt.Fprint(w, "Event received. Have a nice day.")
-
 		if err := s.handleEvent(eventType, eventGUID, payload); err != nil {
 			log.Logger().Error("Error parsing event.")
 		}
@@ -95,8 +95,20 @@ func (s *SlackBots) handleEvent(eventType, eventGUID string, payload []byte) err
 
 func helpProvider(enabledRepos []string) (*pluginhelp.PluginHelp, error) {
 	pluginHelp := &pluginhelp.PluginHelp{
-		Description: `The slackbot plugin for jenkins-x-labs Core is used for communicating between PRs and Slack. 
+		Description: `The slackbot plugin for Jenkins X Labs is used for communicating between PRs and Slack. 
 It will notify any reviewers on slack when a PR changes state`,
 	}
 	return pluginHelp, nil
+}
+
+func (s *SlackBots) getWebHookToken() ([]byte, error) {
+	if s.HmacSecretName == "" || s.HmacSecretName == "REPLACE_ME" {
+		// Not configured
+		return nil, nil
+	}
+	secret, err := s.KubeClient.CoreV1().Secrets(s.Namespace).Get(s.HmacSecretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return secret.Data["hmac"], nil
 }

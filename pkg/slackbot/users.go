@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 
 	jenkinsv1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 
@@ -27,6 +27,15 @@ type SlackUserResolver struct {
 	JXClient     jenkninsv1client.Interface
 	Namespace    string
 	UserMappings map[string]string
+}
+
+// NewSlackUserResolver creates a new struct to work with resolving slack user details
+func NewSlackUserResolver(slackClient *slack.Client, jenkinsClient jenkninsv1client.Interface, namespace string) SlackUserResolver {
+	return SlackUserResolver{
+		SlackClient: slackClient,
+		JXClient:    jenkinsClient,
+		Namespace:   namespace,
+	}
 }
 
 // SlackUserLogin returns the login for the slack provider, or an empty string if not found

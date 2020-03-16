@@ -12,23 +12,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (c *Clients) getPipelineActivities(org string, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
+func (c *GlobalClients) getPipelineActivities(org string, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
 	return c.JXClient.JenkinsV1().PipelineActivities(c.Namespace).List(metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("owner=%s, branch=PR-%d, sourcerepository=%s", org, prn, repo),
 	})
 }
 
-func (b *SlackBots) Run() error {
-	for _, o := range b.Items {
-		err := o.watchActivities()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (o *SlackBotOptions) watchActivities() error {
+// WatchActivities watches for pipeline activities
+func (o *SlackBotOptions) WatchActivities() chan struct{} {
 
 	jxClient := o.JXClient
 
@@ -54,7 +45,8 @@ func (o *SlackBotOptions) watchActivities() error {
 
 	stop := make(chan struct{})
 	go controller.Run(stop)
-	return nil
+
+	return stop
 }
 
 func (o *SlackBotOptions) onObj(obj interface{}) {

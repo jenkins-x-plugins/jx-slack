@@ -3,7 +3,7 @@ package slackbot
 import (
 	"fmt"
 
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -21,20 +21,23 @@ const (
 	DefaultPort           = 8080
 )
 
-type Clients struct {
+// GlobalClients are a set of clients shared for each SlackBot
+type GlobalClients struct {
 	SlackAppClient v1client.Interface
 	Namespace      string
 	KubeClient     kubernetes.Interface
 	JXClient       jenkinsv1client.Interface
 	Factory        cmd.Factory
-
-	// TODO hacky and probably going to break a lot, but until Git Provider stuff is better unwound...
+	slackClient
+	// TODO not great but needed until Git Provider stuff is better unwound...
 	CommonOptions *opts.CommonOptions
 }
 
+type slackWrapper struct{}
+
 // SlackBotOptions contains options for the SlackBot
 type SlackBotOptions struct {
-	*Clients
+	*GlobalClients
 
 	SlackClient       *slack.Client
 	Pipelines         []slackapp.SlackBotMode
@@ -44,10 +47,13 @@ type SlackBotOptions struct {
 	Orgs              []slackapp.Org
 	Timestamps        map[string]map[string]*MessageReference
 	SlackUserResolver *SlackUserResolver
+
+	HmacSecretName string
+	Port           int
 }
 
 type SlackBots struct {
-	*Clients
+	*GlobalClients
 	HmacSecretName string
 	Items          []*SlackBotOptions
 	Port           int
@@ -71,7 +77,8 @@ func createSlackAppClient(f cmd.Factory) (v1client.Interface, string, error) {
 	return client, ns, err
 }
 
-func CreateClients() (*Clients, error) {
+// CreateClients creates the default global clients
+func CreateClients() (*GlobalClients, error) {
 	factory := cmd.NewFactory()
 
 	slackAppClient, ns, err := createSlackAppClient(factory)
@@ -91,91 +98,59 @@ func CreateClients() (*Clients, error) {
 
 	commonOptions := opts.NewCommonOptionsWithFactory(factory)
 
-	return &Clients{
+	return &GlobalClients{
 		SlackAppClient: slackAppClient,
 		Namespace:      ns,
 		KubeClient:     kubeClient,
 		JXClient:       jxClient,
 		Factory:        factory,
 		CommonOptions:  &commonOptions,
+		slackClient:    &slackWrapper{},
 	}, nil
 }
 
-func CreateSlackBots(hmacSecretName string, port int) (*SlackBots, error) {
-	if hmacSecretName == "" {
-		hmacSecretName = DefaultHmacSecretName
-	}
-	if port == 0 {
-		port = DefaultPort
-	}
-	c, err := CreateClients()
-	if err != nil {
-		return nil, err
-	}
-	// TODO make this a watch
-	slackBots, err := c.SlackAppClient.SlackV1alpha1().SlackBots(c.Namespace).List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	optionsList := make([]*SlackBotOptions, 0)
-
-	for _, slackBot := range slackBots.Items {
-		// Fetch the resource reference for the token
-		if slackBot.Spec.TokenReference.Kind != "Secret" {
-			return nil, fmt.Errorf("expected token of kind Secret but got %s for %s", slackBot.Spec.TokenReference.Kind,
-				slackBot.Name)
-		}
-		secret, err := c.KubeClient.CoreV1().Secrets(c.Namespace).Get(slackBot.Spec.TokenReference.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		token, ok := secret.Data["token"]
-		if !ok {
-			return nil, fmt.Errorf("expected key token in field data")
-		}
-
-		watchNs := c.Namespace
-		if slackBot.Spec.Namespace != "" {
-			watchNs = slackBot.Spec.Namespace
-		}
-
-		slackClient := slack.New(string(token))
-		options := SlackBotOptions{
-			Clients:     c,
-			Namespace:   watchNs,
-			SlackClient: slackClient,
-
-			PullRequests: slackBot.Spec.PullRequests,
-			Pipelines:    slackBot.Spec.Pipelines,
-			Statuses:     slackBot.Spec.Statuses,
-			Timestamps:   make(map[string]map[string]*MessageReference, 0),
-			SlackUserResolver: &SlackUserResolver{
-				JXClient:    c.JXClient,
-				Namespace:   c.Namespace,
-				SlackClient: slackClient,
-			},
-		}
-		optionsList = append(optionsList, &options)
-
-	}
-	return &SlackBots{
-		Clients:        c,
-		HmacSecretName: hmacSecretName,
-		Port:           port,
-		Items:          optionsList,
-	}, nil
+type slackClient interface {
+	getSlackClient(token string, options ...slack.Option) *slack.Client
 }
 
-func (s *SlackBots) GetWebHookToken() ([]byte, error) {
-	if s.HmacSecretName == "" || s.HmacSecretName == "REPLACE_ME" {
-		// Not configured
-		return nil, nil
+func (s slackWrapper) getSlackClient(token string, options ...slack.Option) *slack.Client {
+	return slack.New(token, options...)
+}
+
+// CreateSlackBot configures a SlackBot
+func CreateSlackBot(c *GlobalClients, slackBot *slackapp.SlackBot) (*SlackBotOptions, error) {
+
+	// Fetch the resource reference for the token
+	if slackBot.Spec.TokenReference.Kind != "Secret" {
+		return nil, fmt.Errorf("expected token of kind Secret but got %s for %s", slackBot.Spec.TokenReference.Kind,
+			slackBot.Name)
 	}
-	secret, err := s.KubeClient.CoreV1().Secrets(s.Namespace).Get(s.HmacSecretName, metav1.GetOptions{})
+	secret, err := c.KubeClient.CoreV1().Secrets(c.Namespace).Get(slackBot.Spec.TokenReference.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return secret.Data["hmac"], nil
+
+	token, ok := secret.Data["token"]
+	if !ok {
+		return nil, fmt.Errorf("expected key token in field data")
+	}
+	watchNs := c.Namespace
+	if slackBot.Spec.Namespace != "" {
+		watchNs = slackBot.Spec.Namespace
+	}
+
+	slackClient := c.getSlackClient(string(token))
+
+	userResolver := NewSlackUserResolver(slackClient, c.JXClient, watchNs)
+
+	return &SlackBotOptions{
+		GlobalClients:     c,
+		SlackClient:       slackClient,
+		Pipelines:         slackBot.Spec.Pipelines,
+		PullRequests:      slackBot.Spec.PullRequests,
+		Namespace:         watchNs,
+		Statuses:          slackBot.Spec.Statuses,
+		Timestamps:        make(map[string]map[string]*MessageReference, 0),
+		SlackUserResolver: &userResolver,
+	}, nil
 }
