@@ -29,6 +29,14 @@ type SlackUserResolver struct {
 	UserMappings map[string]string
 }
 
+func NewSlackUserResolver(slackClient *slack.Client, jenkinsClient jenkninsv1client.Interface, namespace string) SlackUserResolver {
+	return SlackUserResolver{
+		SlackClient: slackClient,
+		JXClient:    jenkinsClient,
+		Namespace:   namespace,
+	}
+}
+
 // SlackUserLogin returns the login for the slack provider, or an empty string if not found
 func (r *SlackUserResolver) SlackUserLogin(user *jenkinsv1.User) (string, error) {
 	for _, a := range user.Spec.Accounts {

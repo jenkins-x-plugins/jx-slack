@@ -28,9 +28,11 @@ type Clients struct {
 	JXClient       jenkinsv1client.Interface
 	Factory        cmd.Factory
 
-	// TODO hacky and probably going to break a lot, but until Git Provider stuff is better unwound...
+	// TODO not great but needed until Git Provider stuff is better unwound...
 	CommonOptions *opts.CommonOptions
 }
+
+type slackWrapper struct{}
 
 // SlackBotOptions contains options for the SlackBot
 type SlackBotOptions struct {
@@ -127,18 +129,17 @@ func CreateSlackBot(c *Clients, slackBot *slackapp.SlackBot) (*SlackBotOptions, 
 	}
 
 	slackClient := slack.New(string(token))
+
+	userResolver := NewSlackUserResolver(slackClient, c.JXClient, watchNs)
+
 	return &SlackBotOptions{
-		Clients:      c,
-		SlackClient:  slackClient,
-		Pipelines:    slackBot.Spec.Pipelines,
-		PullRequests: slackBot.Spec.PullRequests,
-		Namespace:    watchNs,
-		Statuses:     slackBot.Spec.Statuses,
-		Timestamps:   make(map[string]map[string]*MessageReference, 0),
-		SlackUserResolver: &SlackUserResolver{
-			JXClient:    c.JXClient,
-			Namespace:   c.Namespace,
-			SlackClient: slackClient,
-		},
+		Clients:           c,
+		SlackClient:       slackClient,
+		Pipelines:         slackBot.Spec.Pipelines,
+		PullRequests:      slackBot.Spec.PullRequests,
+		Namespace:         watchNs,
+		Statuses:          slackBot.Spec.Statuses,
+		Timestamps:        make(map[string]map[string]*MessageReference, 0),
+		SlackUserResolver: &userResolver,
 	}, nil
 }
