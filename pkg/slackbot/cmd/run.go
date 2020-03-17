@@ -1,17 +1,17 @@
 package cmd
 
 import (
-	"time"
+	"k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/pkg/errors"
 
 	"github.com/jenkins-x/jx/pkg/log"
 
 	slackappapi "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
+	informers "github.com/jenkins-x-labs/slack/pkg/client/informers/externalversions"
 	"github.com/jenkins-x-labs/slack/pkg/slackbot"
 	jxcmd "github.com/jenkins-x/jx/pkg/cmd/helper"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 )
@@ -57,27 +57,24 @@ func (o *SlackAppRunOptions) Run() error {
 
 	o.botChannels = make(map[types.UID]chan struct{})
 
-	slackBots := &slackappapi.SlackBot{}
-	_, controller := cache.NewInformer(
-		cache.NewListWatchFromClient(o.clients.SlackAppClient.SlackV1alpha1().RESTClient(), "slackbots", o.clients.Namespace,
-			fields.Everything()),
-		slackBots,
-		time.Minute*10,
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				o.add(obj)
-			},
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				o.delete(oldObj)
-				o.add(newObj)
-			},
-			DeleteFunc: func(obj interface{}) {
-				o.delete(obj)
-			},
-		},
-	)
-	stop := make(chan struct{})
-	go controller.Run(stop)
+	log.Logger().Infof("Watching slackbots in namespace %s\n", o.clients.Namespace)
+
+	factory := informers.NewSharedInformerFactoryWithOptions(o.clients.SlackAppClient, 0, informers.WithNamespace(o.clients.Namespace))
+
+	informer := factory.Slack().V1alpha1().SlackBots().Informer()
+
+	stopper := make(chan struct{})
+	defer close(stopper)
+
+	defer runtime.HandleCrash()
+
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    o.add,
+		UpdateFunc: o.onUpdate,
+		DeleteFunc: o.delete,
+	})
+
+	go informer.Run(stopper)
 
 	bots := slackbot.SlackBots{
 		GlobalClients:  o.clients,
@@ -108,6 +105,11 @@ func (o *SlackAppRunOptions) add(obj interface{}) {
 	// store the channel so we can update or delete it later if the SlackBot resource gets updated in the cluster
 	o.botChannels[slackBot.UID] = bot.WatchActivities()
 
+}
+
+func (o SlackAppRunOptions) onUpdate(oldObj interface{}, newObj interface{}) {
+	o.delete(newObj)
+	o.add(newObj)
 }
 
 func (o *SlackAppRunOptions) delete(obj interface{}) {

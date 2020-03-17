@@ -40,6 +40,7 @@ type SlackBotOptions struct {
 	*GlobalClients
 
 	SlackClient       *slack.Client
+	Name              string
 	Pipelines         []slackapp.SlackBotMode
 	PullRequests      []slackapp.SlackBotMode
 	Namespace         string
@@ -145,6 +146,7 @@ func CreateSlackBot(c *GlobalClients, slackBot *slackapp.SlackBot) (*SlackBotOpt
 
 	return &SlackBotOptions{
 		GlobalClients:     c,
+		Name:              slackBot.Name,
 		SlackClient:       slackClient,
 		Pipelines:         slackBot.Spec.Pipelines,
 		PullRequests:      slackBot.Spec.PullRequests,
