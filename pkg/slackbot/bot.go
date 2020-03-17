@@ -755,7 +755,7 @@ func (o *SlackBotOptions) createStageAttachments(activity *jenkinsv1.PipelineAct
 		o.createStepAttachment(&stage.CoreActivityStep, name, "", ""),
 	}
 	for _, step := range stage.Steps {
-		o.createStepAttachment(&step, "", "", "")
+		attachments = append(attachments, o.createStepAttachment(&step, "", "", ""))
 	}
 	return attachments
 }

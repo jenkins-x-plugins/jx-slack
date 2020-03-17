@@ -1,0 +1,121 @@
+apiVersion: jenkins.io/v1
+kind: PipelineActivity
+metadata:
+  annotations:
+    bot.slack.apps.jenkins-x.io-pipeline/bar: wine/1584476341.001600
+    bot.slack.apps.jenkins-x.io-pr/team-jx-labs: cheese/1584475255.485200
+    jenkins.io/git-report-running-stages: ""
+    jenkins.io/git-report-state: Succeeded
+  generation: 13
+  labels:
+    branch: PR-83
+    build: "13"
+    context: pr-build
+    lastCommitSha: d44328f9dd53fb92b62ebf306404c5cb60ce6754 # pragma: allowlist secret
+    owner: jenkins-x-labs
+    provider: github
+    repository: jxl
+  name: jenkins-x-labs-jxl-pr-83-13
+  namespace: jx
+spec:
+  author: rawlingsj
+  baseSHA: c8262e85a560c71f882494fef643c1f40d5ff984 # pragma: allowlist secret
+  batchPipelineActivity: {}
+  build: "13"
+  buildLogsUrl: gs://foo/jenkins-x/logs/jenkins-x-labs/jxl/PR-83/13.log
+  completedTimestamp: "2020-03-17T20:34:05Z"
+  context: pr-build
+  gitBranch: PR-83
+  gitOwner: jenkins-x-labs
+  gitRepository: jxl
+  gitUrl: https://github.com/jenkins-x-labs/jxl.git
+  lastCommitSHA: d44328f9dd53fb92b62ebf306404c5cb60ce6754 # pragma: allowlist secret
+  pipeline: jenkins-x-labs/jxl/PR-83
+  pullTitle: test slack bot
+  startedTimestamp: "2020-03-17T20:18:38Z"
+  status: Succeeded
+  steps:
+    - kind: Stage
+      stage:
+        completedTimestamp: "2020-03-17T20:18:56Z"
+        name: meta pipeline
+        startedTimestamp: "2020-03-17T20:18:38Z"
+        status: Succeeded
+        steps:
+          - completedTimestamp: "2020-03-17T20:18:38Z"
+            name: Credential Initializer N8vww
+            startedTimestamp: "2020-03-17T20:18:38Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:18:39Z"
+            name: Working Dir Initializer 2tszg
+            startedTimestamp: "2020-03-17T20:18:38Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:18:40Z"
+            name: Place Tools
+            startedTimestamp: "2020-03-17T20:18:39Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:18:45Z"
+            description: https://github.com/jenkins-x-labs/jxl.git
+            name: Git Source Meta Jenkins X Labs Jxl Pr 83 P Cbl89 6cfh7
+            startedTimestamp: "2020-03-17T20:18:40Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:18:46Z"
+            name: Git Merge
+            startedTimestamp: "2020-03-17T20:18:45Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:18:47Z"
+            name: Merge Pull Refs
+            startedTimestamp: "2020-03-17T20:18:46Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:18:52Z"
+            name: Create Effective Pipeline
+            startedTimestamp: "2020-03-17T20:18:47Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:18:56Z"
+            name: Create Tekton Crds
+            startedTimestamp: "2020-03-17T20:18:52Z"
+            status: Succeeded
+    - kind: Stage
+      stage:
+        completedTimestamp: "2020-03-17T20:34:05Z"
+        name: from build pack
+        startedTimestamp: "2020-03-17T20:18:57Z"
+        status: Succeeded
+        steps:
+          - completedTimestamp: "2020-03-17T20:18:57Z"
+            name: Credential Initializer V4bs2
+            startedTimestamp: "2020-03-17T20:18:57Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:18:57Z"
+            name: Working Dir Initializer 8z5zf
+            startedTimestamp: "2020-03-17T20:18:57Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:18:58Z"
+            name: Place Tools
+            startedTimestamp: "2020-03-17T20:18:57Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:19:03Z"
+            description: https://github.com/jenkins-x-labs/jxl.git
+            name: Git Source Jenkins X Labs Jxl Pr 83 Pr Bui 87jrw Tc66g
+            startedTimestamp: "2020-03-17T20:18:58Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:19:05Z"
+            name: Git Merge
+            startedTimestamp: "2020-03-17T20:19:03Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:26:49Z"
+            name: Build Make Linux
+            startedTimestamp: "2020-03-17T20:19:05Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:28:36Z"
+            name: Build Make Test
+            startedTimestamp: "2020-03-17T20:26:49Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:34:04Z"
+            name: Build Container Build
+            startedTimestamp: "2020-03-17T20:28:36Z"
+            status: Succeeded
+          - completedTimestamp: "2020-03-17T20:34:05Z"
+            name: Postbuild Post Build
+            startedTimestamp: "2020-03-17T20:34:04Z"
+            status: Succeeded
