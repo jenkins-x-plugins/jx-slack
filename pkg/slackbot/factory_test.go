@@ -30,8 +30,8 @@ func TestCreateSlackBot(t *testing.T) {
 	fakeclient := fake.NewSimpleClientset(secret)
 
 	clients := &GlobalClients{
-		KubeClient:  fakeclient,
-		slackClient: &fakeSlackClient{},
+		KubeClient:        fakeclient,
+		slackClientHelper: &fakeSlackClient{},
 	}
 
 	tests := []struct {
@@ -40,7 +40,7 @@ func TestCreateSlackBot(t *testing.T) {
 		want     *slack.Client
 		wantErr  bool
 	}{
-		{name: "secret_does_exist", slackBot: getSlackBot(secretName), want: clients.slackClient.getSlackClient(testToken), wantErr: false},
+		{name: "secret_does_exist", slackBot: getSlackBot(secretName), want: clients.slackClientHelper.getSlackClient(testToken), wantErr: false},
 		{name: "secret_does_not_exist", slackBot: getSlackBot("does_not_exist"), want: nil, wantErr: true},
 	}
 	for _, tt := range tests {

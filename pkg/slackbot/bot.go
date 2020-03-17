@@ -530,7 +530,7 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 		actions = append(actions, slack.AttachmentAction{
 			Type: "button",
 			Text: "Build Logs",
-			URL:  spec.BuildLogsURL,
+			URL:  strings.Replace(spec.BuildLogsURL, "gs://", "https://storage.cloud.google.com/", -1),
 		})
 	}
 	if spec.ReleaseNotesURL != "" {
