@@ -4,6 +4,7 @@ require (
 	github.com/briandowns/spinner v1.9.0 // indirect
 	github.com/c2h5oh/datasize v0.0.0-20200112174442-28bbd4740fee // indirect
 	github.com/evanphx/json-patch v4.5.0+incompatible
+	github.com/ghodss/yaml v1.0.0
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/jenkins-x/jx v1.3.1119
@@ -17,6 +18,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	gopkg.in/square/go-jose.v2 v2.4.1 // indirect
+	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.17.4
 	k8s.io/apiextensions-apiserver v0.0.0-20190718185103-d1ef975d28ce
 	k8s.io/apimachinery v0.17.4
