@@ -29,7 +29,7 @@ func TestSlackBotOptions_createAttachments(t *testing.T) {
 		wantNumberOfSteps int
 		want              []slack.Attachment
 	}{
-		{name: "multi_step_stage", fields: struct{ filename string }{filename: "stage_multiple_steps.yaml"}, wantNumberOfSteps: 19, want: nil},
+		{name: "multi_step_stage", fields: struct{ filename string }{filename: "stage_multiple_steps.yaml"}, wantNumberOfSteps: 11, want: nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
