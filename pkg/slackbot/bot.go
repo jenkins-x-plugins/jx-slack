@@ -774,14 +774,13 @@ func (o *SlackBotOptions) createStepAttachment(step jenkinsv1.CoreActivityStep, 
 			text += description
 		}
 	}
-	textName := name
+	textName := strings.Title(name)
 	if textName == "" {
 		textName = step.Name
 	}
-	// wonder if we should have a map of stage text to slack friendly descriptions rather than this below?
-	if textName == "meta pipeline" {
-		textName = "Generating pipeline"
-	}
+
+	textName = getUserFriendlyMapping(textName)
+
 	stepStatus := step.Status
 	textMessage := o.statusString(stepStatus) + " " + textName
 	if text != "" {
