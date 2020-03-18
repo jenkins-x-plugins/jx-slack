@@ -3,7 +3,7 @@ package slackbot
 var (
 	// contains mappings of known pipeline steps to user friendly slack descriptions
 	slackMessageMapping = map[string]string{
-		"meta pipeline": "Generating pipeline",
+		"Meta Pipeline": "Generating Pipeline",
 	}
 )
 

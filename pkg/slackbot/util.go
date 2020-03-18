@@ -1,6 +1,8 @@
 package slackbot
 
 import (
+	"strings"
+
 	jenkinsv1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	jxkube "github.com/jenkins-x/jx/pkg/kube"
 )
@@ -22,4 +24,13 @@ func (s byBuildNumber) getBuildNumber(activity jenkinsv1.PipelineActivity) strin
 
 func (s byBuildNumber) Less(i, j int) bool {
 	return s.getBuildNumber(s[i]) < s.getBuildNumber(s[j])
+}
+
+func containsIgnoreCase(s []string, e string) bool {
+	for _, a := range s {
+		if strings.ToLower(a) == strings.ToLower(e) {
+			return true
+		}
+	}
+	return false
 }

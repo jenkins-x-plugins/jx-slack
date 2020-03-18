@@ -38,6 +38,8 @@ const (
 	pipelineMessageType          = "pipeline"
 )
 
+var knownPipelineStageTypes = []string{"setup", "setVersion", "preBuild", "build", "postBuild", "promote", "pipeline"}
+
 var defaultStatuses = slackapp.Statuses{
 	Merged: &slackapp.Status{
 		Emoji: ":purple_heart:",
@@ -757,11 +759,27 @@ func (o *SlackBotOptions) createStageAttachments(activity *jenkinsv1.PipelineAct
 	}
 	if stage.CoreActivityStep.Name != "meta pipeline" {
 		for _, step := range stage.Steps {
-			attachments = append(attachments, o.createStepAttachment(step, "", "", ""))
+			// filter out tekton generated steps
+			if isUserPipelineStep(step.Name) {
+				attachments = append(attachments, o.createStepAttachment(step, "", "", ""))
+			}
 		}
 	}
 
 	return attachments
+}
+
+func isUserPipelineStep(name string) bool {
+	if strings.TrimSpace(name) == "" {
+		return false
+	}
+	ss := strings.Fields(name)
+	firstWord := ss[0]
+
+	if containsIgnoreCase(knownPipelineStageTypes, firstWord) {
+		return true
+	}
+	return false
 }
 
 func (o *SlackBotOptions) createStepAttachment(step jenkinsv1.CoreActivityStep, name string, description string,

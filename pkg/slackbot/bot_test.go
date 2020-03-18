@@ -70,3 +70,35 @@ func getPipelineActivity(filename string) (*jenkinsv1.PipelineActivity, error) {
 	}
 	return act, nil
 }
+
+func Test_isUserPipelineStep(t *testing.T) {
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "build", want: true},
+		{name: "build something", want: true},
+		{name: "setup something", want: true},
+		{name: "setVersion something", want: true},
+		{name: "preBuild something", want: true},
+		{name: "postBuild something", want: true},
+		{name: "promote something", want: true},
+		{name: "pipeline something", want: true},
+		{name: "Credential Initializer", want: false},
+		{name: "Working Dir Initializer", want: false},
+		{name: "Place Tools", want: false},
+		{name: "Git Source", want: false},
+		{name: "Git Merge", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isUserPipelineStep(tt.name); got != tt.want {
+				t.Errorf("isUserPipelineStep() %s = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
