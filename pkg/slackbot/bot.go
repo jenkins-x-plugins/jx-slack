@@ -38,6 +38,8 @@ const (
 	pipelineMessageType          = "pipeline"
 )
 
+var knownPipelineStageTypes = []string{"setup", "setVersion", "preBuild", "build", "postBuild", "promote", "pipeline"}
+
 var defaultStatuses = slackapp.Statuses{
 	Merged: &slackapp.Status{
 		Emoji: ":purple_heart:",
@@ -731,16 +733,16 @@ func (o *SlackBotOptions) createAttachments(activity *jenkinsv1.PipelineActivity
 	stage := step.Stage
 	promote := step.Promote
 	if stage != nil {
-		return o.createStageAttachments(activity, step, stage)
+		return o.createStageAttachments(activity, stage)
 	} else if promote != nil {
-		return o.createPromoteAttachments(activity, step, promote)
+		return o.createPromoteAttachments(activity, promote)
 	}
 	return []slack.Attachment{}
 
 }
 
 func (o *SlackBotOptions) createStageAttachments(activity *jenkinsv1.PipelineActivity,
-	step *jenkinsv1.PipelineActivityStep, stage *jenkinsv1.StageActivityStep) []slack.Attachment {
+	stage *jenkinsv1.StageActivityStep) []slack.Attachment {
 	name := stage.Name
 	if name == "" {
 		name = "Stage"
@@ -751,16 +753,36 @@ func (o *SlackBotOptions) createStageAttachments(activity *jenkinsv1.PipelineAct
 			name = "release " + link(version, activity.Spec.ReleaseNotesURL)
 		}
 	}
+
 	attachments := []slack.Attachment{
-		o.createStepAttachment(&stage.CoreActivityStep, name, "", ""),
+		o.createStepAttachment(stage.CoreActivityStep, name, "", ""),
 	}
-	for _, step := range stage.Steps {
-		attachments = append(attachments, o.createStepAttachment(&step, "", "", ""))
+	if stage.CoreActivityStep.Name != "meta pipeline" {
+		for _, step := range stage.Steps {
+			// filter out tekton generated steps
+			if isUserPipelineStep(step.Name) {
+				attachments = append(attachments, o.createStepAttachment(step, "", "", ""))
+			}
+		}
 	}
+
 	return attachments
 }
 
-func (o *SlackBotOptions) createStepAttachment(step *jenkinsv1.CoreActivityStep, name string, description string,
+func isUserPipelineStep(name string) bool {
+	if strings.TrimSpace(name) == "" {
+		return false
+	}
+	ss := strings.Fields(name)
+	firstWord := ss[0]
+
+	if containsIgnoreCase(knownPipelineStageTypes, firstWord) {
+		return true
+	}
+	return false
+}
+
+func (o *SlackBotOptions) createStepAttachment(step jenkinsv1.CoreActivityStep, name string, description string,
 	iconUrl string) slack.Attachment {
 	text := step.Description
 	if description != "" {
@@ -770,10 +792,13 @@ func (o *SlackBotOptions) createStepAttachment(step *jenkinsv1.CoreActivityStep,
 			text += description
 		}
 	}
-	textName := name
+	textName := strings.Title(name)
 	if textName == "" {
 		textName = step.Name
 	}
+
+	textName = getUserFriendlyMapping(textName)
+
 	stepStatus := step.Status
 	textMessage := o.statusString(stepStatus) + " " + textName
 	if text != "" {
@@ -788,24 +813,24 @@ func (o *SlackBotOptions) createStepAttachment(step *jenkinsv1.CoreActivityStep,
 	}
 }
 
-func (o *SlackBotOptions) createPromoteAttachments(activity *jenkinsv1.PipelineActivity, step *jenkinsv1.PipelineActivityStep, parent *jenkinsv1.PromoteActivityStep) []slack.Attachment {
+func (o *SlackBotOptions) createPromoteAttachments(activity *jenkinsv1.PipelineActivity, parent *jenkinsv1.PromoteActivityStep) []slack.Attachment {
 	envName := strings.Title(parent.Environment)
 	attachments := []slack.Attachment{
-		o.createStepAttachment(&parent.CoreActivityStep, "promote to *"+envName+"*", "", ""),
+		o.createStepAttachment(parent.CoreActivityStep, "promote to *"+envName+"*", "", ""),
 	}
 
 	pullRequest := parent.PullRequest
 	update := parent.Update
 	if pullRequest != nil {
 		iconUrl := pullRequestIcon(pullRequest)
-		attachments = append(attachments, o.createStepAttachment(&pullRequest.CoreActivityStep, "PR", describePromotePullRequest(activity, pullRequest), iconUrl))
+		attachments = append(attachments, o.createStepAttachment(pullRequest.CoreActivityStep, "PR", describePromotePullRequest(activity, pullRequest), iconUrl))
 	}
 	if update != nil {
-		attachments = append(attachments, o.createStepAttachment(&update.CoreActivityStep, "update", describePromoteUpdate(update), ""))
+		attachments = append(attachments, o.createStepAttachment(update.CoreActivityStep, "update", describePromoteUpdate(update), ""))
 	}
 	appURL := parent.ApplicationURL
 	if appURL != "" {
-		attachments = append(attachments, o.createStepAttachment(&update.CoreActivityStep, ":star: application now in "+link(envName, appURL), "", ""))
+		attachments = append(attachments, o.createStepAttachment(update.CoreActivityStep, ":star: application now in "+link(envName, appURL), "", ""))
 	}
 	return attachments
 }

@@ -12,14 +12,10 @@ VERSION=$1
 make linux && docker build -t rawlingsj80/slack:$VERSION . && \
   docker push rawlingsj80/slack:$VERSION
 
-helm uninstall slack || true
-cd charts/slack && helm install --set googleSecretsManager=true --set image.repository=rawlingsj80/slack --set image.tag=$VERSION slack .
+# helm upgrade slack jx-labs/slack
+helm upgrade --set googleSecretsManager=true --set image.repository=rawlingsj80/slack --set image.tag=$VERSION slack jx-labs/slack
 
 #kubectl apply -f  ~/.jx/localSecrets/slack.yaml
-
-# hack until we watch for new SlackBot kinds being added
-#kubectl scale deploy slack-slack --replicas 0
-#kubectl scale deploy slack-slack --replicas 1
 
 sleep 10
 
