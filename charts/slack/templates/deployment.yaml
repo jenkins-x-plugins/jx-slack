@@ -27,7 +27,7 @@ spec:
           "--port",
           "{{ .Values.service.internalPort }}",
           "--hmac-token",
-          "{{ .Values.hmacToken }}"
+          "{{ .Values.hmacToken.name }}"
         ]
         ports:
         - containerPort: {{ .Values.service.internalPort }}
