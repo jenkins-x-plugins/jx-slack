@@ -1,4 +1,4 @@
-# slack - NOT YET READY FOR USE
+# slack - VERY EARLY ALPHA
 
 WARNING: This is an experimental Jenkins X Labs project, it is likely to have significant change and APIs may break while
 we gather feedback and aim to get it into an alpha state.
@@ -10,7 +10,12 @@ This has been developed and tested so far using pipelines triggred by commits fr
 ## Features
 
 * Sends a message when a build starts on any of the projects inside the cluster updating the message in real time as your pipeline progresses. Works for both pipelines and releases. Can be a DM or to a room.
+
+![](./docs/images/room.png)
+
 * Sends a message when a Pull Request is created, CC'ing the reviewers allocated and updates the message as the PR gets approved/merged. Can be a DM or to a room. Message gets updated as PR status changes (e.g. builds passing, merged etc.)
+
+![](./docs/images/dm.png)
 
 ## Future ideas
 * Can be configured to send failure messages when release pipelines fail
