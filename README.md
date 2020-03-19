@@ -60,7 +60,12 @@ Once created from the left hand menu select "OAuth & Permissions" and scroll dow
 ```bash
 kubectl create secret generic test-slack-bot-secret --from-literal=token=abc123
 ```
-5. Our Jenkins X Slack Bot app is configured using a custom resources of kind `SlackBot`. For example:
+
+5. Invite your new slack app to the channel you want your room messages to appear in
+```
+/invite jenkinsx
+```
+6. Our Jenkins X Slack Bot app is configured using a custom resources of kind `SlackBot`. For example:
 Next configure and apply your slack bot configuration referencing the secret above:
 
 ```yaml
@@ -97,7 +102,7 @@ spec:
 Each integration is configured in a separate custom resource. To add a new integration, create
 a new custom resource.
 
-6. The slack bot app will use a Git commit email address when Pull Requests and other Git events happen.  This Git email address is used to lookup a Slack user id which is then used to send Direct messages to.  If the email addresses got your users git commits is different to the one they use to log into slack you will need to provide the mappings.
+7. The slack bot app will use a Git commit email address when Pull Requests and other Git events happen.  This Git email address is used to lookup a Slack user id which is then used to send Direct messages to.  If the email addresses got your users git commits is different to the one they use to log into slack you will need to provide the mappings.
 
 A user mapping file is a simple plain text file containing a list of git email adresses that map to their slack email address.
 
