@@ -3,44 +3,4 @@ kind: Role
 metadata:
   name: {{ template "fullname" . }}
 rules:
-- apiGroups:
-  - jenkins.io
-  resources:
-  - pipelineactivities
-  verbs:
-  - watch
-  - update
-  - list
-- apiGroups:
-    - jenkins.io
-  resources:
-  - users
-  verbs:
-  - list
-  - create
-  - update
-- apiGroups:
-    - ""
-  resources:
-  - secrets
-  - namespaces
-  verbs:
-  - get
-  - list
-- apiGroups:
-    - ""
-  resources:
-    - configmaps
-  resourceNames:
-  - "plugins"
-  verbs:
-    - watch
-    - get
-    - update
-- apiGroups:
-  - slack.app.jenkins-x.io
-  resources:
-  - slackbots
-  verbs:
-  - list
-  - watch
+{{ .Values.role.rules | toYaml }}
