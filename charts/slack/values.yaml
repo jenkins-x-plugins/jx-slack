@@ -37,3 +37,63 @@ hmacToken:
   name: hmac-token
 
 googleSecretsManager: false
+
+role:
+  rules:
+  - apiGroups:
+    - jenkins.io
+    resources:
+    - pipelineactivities
+    verbs:
+    - watch
+    - update
+    - list
+  - apiGroups:
+    - jenkins.io
+    resources:
+    - environments
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - jenkins.io
+    resources:
+    - users
+    verbs:
+    - list
+    - create
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    - configmaps
+    - namespaces
+    - serviceaccounts
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    resourceNames:
+    - "plugins"
+    verbs:
+    - watch
+    - get
+    - update
+  - apiGroups:
+    - slack.app.jenkins-x.io
+    resources:
+    - slackbots
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - vault.banzaicloud.com
+    resources:
+    - vaults
+    verbs:
+    - list
+    - get
