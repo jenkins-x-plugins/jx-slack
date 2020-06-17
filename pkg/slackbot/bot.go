@@ -9,23 +9,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jenkins-x/jx/pkg/prow"
+	"github.com/jenkins-x/jx/v2/pkg/prow"
 
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/jenkins-x/jx/pkg/users"
+	"github.com/jenkins-x/jx/v2/pkg/users"
 
 	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
 
 	"github.com/pkg/errors"
 
-	jenkinsv1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
-	"github.com/jenkins-x/jx/pkg/kube"
+	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
+	"github.com/jenkins-x/jx/v2/pkg/kube"
 
-	"github.com/jenkins-x/jx/pkg/gits"
+	"github.com/jenkins-x/jx/v2/pkg/gits"
 
-	"github.com/jenkins-x/jx/pkg/log"
-	"github.com/jenkins-x/jx/pkg/util"
+	"github.com/jenkins-x/jx/v2/pkg/log"
+	"github.com/jenkins-x/jx/v2/pkg/util"
 	"github.com/slack-go/slack"
 )
 
@@ -287,7 +287,7 @@ func (o *SlackBotOptions) isLgtmRepo(activity *jenkinsv1.PipelineActivity) (bool
 		return false, errors.Wrapf(err, "getting prow config")
 	}
 	pipeDetails := kube.CreatePipelineDetails(activity)
-	for _, query := range cfg.Tide.Queries {
+	for _, query := range cfg.Keeper.Queries {
 		if query.ForRepo(pipeDetails.GitOwner, pipeDetails.GitRepository) {
 			if util.Contains(query.Labels, "lgtm") {
 				return true, nil

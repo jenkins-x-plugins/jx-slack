@@ -9,10 +9,10 @@ import (
 
 	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
 	v1client "github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned"
-	jenkinsv1client "github.com/jenkins-x/jx/pkg/client/clientset/versioned"
-	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
-	opts "github.com/jenkins-x/jx/pkg/cmd/opts"
-	"github.com/jenkins-x/jx/pkg/kube"
+	jenkinsv1client "github.com/jenkins-x/jx/v2/pkg/client/clientset/versioned"
+	cmd "github.com/jenkins-x/jx/v2/pkg/cmd/clients"
+	"github.com/jenkins-x/jx/v2/pkg/cmd/opts"
+	"github.com/jenkins-x/jx/v2/pkg/kube"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

@@ -3,9 +3,9 @@ package slackbot
 import (
 	"fmt"
 
-	jenkinsv1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
-	informers "github.com/jenkins-x/jx/pkg/client/informers/externalversions"
-	"github.com/jenkins-x/jx/pkg/log"
+	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
+	informers "github.com/jenkins-x/jx/v2/pkg/client/informers/externalversions"
+	"github.com/jenkins-x/jx/v2/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 )

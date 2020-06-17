@@ -3,8 +3,8 @@ package slackbot
 import (
 	"strings"
 
-	jenkinsv1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
-	jxkube "github.com/jenkins-x/jx/pkg/kube"
+	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
+	jxkube "github.com/jenkins-x/jx/v2/pkg/kube"
 )
 
 type byBuildNumber []jenkinsv1.PipelineActivity

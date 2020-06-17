@@ -8,8 +8,8 @@ import (
 	"github.com/jenkins-x-labs/slack/pkg/slackbot"
 	"k8s.io/test-infra/prow/plugins"
 
-	jxcmd "github.com/jenkins-x/jx/pkg/cmd/helper"
-	"github.com/jenkins-x/jx/pkg/prow"
+	jxcmd "github.com/jenkins-x/jx/v2/pkg/cmd/helper"
+	"github.com/jenkins-x/jx/v2/pkg/prow"
 	"github.com/spf13/cobra"
 )
 

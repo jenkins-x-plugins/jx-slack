@@ -9,12 +9,12 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/jenkins-x/jx/pkg/log"
+	"github.com/jenkins-x/jx/v2/pkg/log"
 
-	"gotest.tools/assert"
-
-	jenkinsv1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
 	"github.com/slack-go/slack"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSlackBotOptions_createAttachments(t *testing.T) {
@@ -34,7 +34,7 @@ func TestSlackBotOptions_createAttachments(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			act, err := getPipelineActivity(tt.fields.filename)
-			assert.NilError(t, err, "failed to read files")
+			assert.NoError(t, err, "failed to read files")
 
 			attachments := []slack.Attachment{}
 			for _, step := range act.Spec.Steps {

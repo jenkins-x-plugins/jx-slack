@@ -5,12 +5,12 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/jenkins-x/jx/pkg/log"
+	"github.com/jenkins-x/jx/v2/pkg/log"
 
 	slackappapi "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
 	informers "github.com/jenkins-x-labs/slack/pkg/client/informers/externalversions"
 	"github.com/jenkins-x-labs/slack/pkg/slackbot"
-	jxcmd "github.com/jenkins-x/jx/pkg/cmd/helper"
+	jxcmd "github.com/jenkins-x/jx/v2/pkg/cmd/helper"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
