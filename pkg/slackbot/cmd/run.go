@@ -101,10 +101,6 @@ func (o *SlackAppRunOptions) add(obj interface{}) {
 	}
 
 	o.Items = append(o.Items, bot)
-
-	// store the channel so we can update or delete it later if the SlackBot resource gets updated in the cluster
-	o.botChannels[slackBot.UID] = bot.WatchActivities()
-
 }
 
 func (o SlackAppRunOptions) onUpdate(oldObj interface{}, newObj interface{}) {

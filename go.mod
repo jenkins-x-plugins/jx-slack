@@ -8,7 +8,8 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
 	github.com/jenkins-x/go-scm v1.5.141
-	github.com/jenkins-x/jx/v2 v2.1.70
+	github.com/jenkins-x/jx/v2 v2.1.78
+	github.com/jenkins-x/lighthouse v0.0.650
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.0.0 // indirect

@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"sort"
 	"strconv"
 
 	"github.com/jenkins-x/go-scm/scm"
-	"github.com/jenkins-x/go-scm/scm/factory"
+	"github.com/jenkins-x/lighthouse/pkg/jx"
+	lhutil "github.com/jenkins-x/lighthouse/pkg/util"
+	"github.com/pkg/errors"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -93,9 +94,13 @@ func (s *SlackBots) processPR(owner, repo string, number int) error {
 	if len(acts.Items) > 0 {
 		sort.Sort(byBuildNumber(acts.Items))
 		act := acts.Items[0]
+		ar, err := jx.ConvertPipelineActivity(&act)
+		if err != nil {
+			return err
+		}
 		// now we can just run the bots for the activity
 		for _, bot := range s.Items {
-			err := bot.ReviewRequestMessage(&act)
+			err := bot.ReviewRequestMessage(ar)
 			if err != nil {
 				return err
 			}
@@ -131,39 +136,41 @@ func (s *SlackBots) handleLighthouseEvent(r *http.Request) error {
 		log.Logger().WithField("method", r.Method).Debug("invalid http method so returning 200")
 		return nil
 	}
-	kind := os.Getenv("GIT_KIND")
-	if kind == "" {
-		kind = "github"
-	}
-	serverURL := os.Getenv("GIT_SERVER")
-
-	client, err := factory.NewClient(kind, serverURL, "")
+	tokenBytes, err := s.getWebHookToken()
 	if err != nil {
-		log.Logger().Errorf("Could not create client to parse webhook: %s", err)
-		return err
+		return errors.Wrapf(err, "couldn't get HMAC token")
 	}
-	webhook, err := client.Webhooks.Parse(r, func(webhook scm.Webhook) (string, error) {
-		tokenBytes, err := s.getWebHookToken()
-		return string(tokenBytes), err
-	})
+	webhook, activity, err := lhutil.ParseExternalPluginEvent(r, string(tokenBytes))
 	if err != nil {
 		log.Logger().Warnf("failed to parse webhook: %s", err.Error())
 		return err
 	}
-	if webhook == nil {
-		log.Logger().Error("no webhook was parsed")
+	if webhook == nil && activity == nil {
+		log.Logger().Error("no event was parsed")
 		return nil
 	}
-	prHook, ok := webhook.(*scm.PullRequestHook)
-	if ok {
-		go func() {
-			if err := s.handleLighthousePullRequest(prHook); err != nil {
-				log.Logger().Infof("Refreshing slack message failed because %v\n", err)
-			}
-		}()
-	} else {
-		log.Logger().Debugf("skipping event of type %q", webhook.Kind())
+	if webhook != nil {
+		prHook, ok := webhook.(*scm.PullRequestHook)
+		if ok {
+			go func() {
+				if err := s.handleLighthousePullRequest(prHook); err != nil {
+					log.Logger().Infof("Refreshing slack message failed because %v\n", err)
+				}
+			}()
+		} else {
+			log.Logger().Debugf("skipping event of type %q", webhook.Kind())
+		}
 	}
+	if activity != nil {
+		// now we can just run the bots for the activity
+		for _, bot := range s.Items {
+			err := bot.PipelineMessage(activity)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
