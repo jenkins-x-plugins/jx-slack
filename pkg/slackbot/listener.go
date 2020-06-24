@@ -5,35 +5,24 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 
 	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/lighthouse/pkg/jx"
 	lhutil "github.com/jenkins-x/lighthouse/pkg/util"
 	"github.com/pkg/errors"
-	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/test-infra/prow/pluginhelp"
 	"k8s.io/test-infra/prow/pluginhelp/externalplugins"
 
-	"github.com/jenkins-x/jx/v2/pkg/log"
+	"github.com/jenkins-x/jx-logging/pkg/log"
 	"k8s.io/test-infra/prow/github"
 )
 
-func (s *SlackBots) ProwExternalPluginServer() error {
-	isLighthouse := true
-	_, err := s.KubeClient.AppsV1().Deployments(s.Namespace).Get("lighthouse-keeper", metav1.GetOptions{})
-	if err != nil {
-		if kubeerrors.IsNotFound(err) {
-			isLighthouse = false
-		} else {
-			return err
-		}
-	}
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if isLighthouse {
+func (s *SlackBots) ExternalPluginServer() http.Handler {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.IsLighthouse {
 			err := s.handleLighthouseEvent(r)
 			if err != nil {
 				log.Logger().WithError(err).Error("Error parsing Lighthouse event")
@@ -64,7 +53,8 @@ func (s *SlackBots) ProwExternalPluginServer() error {
 	externalplugins.ServeExternalPluginHelp(http.DefaultServeMux, logrus.StandardLogger().WithField("plugin",
 		"slackbot"),
 		helpProvider)
-	return http.ListenAndServe("0.0.0.0:"+strconv.Itoa(s.Port), nil)
+	return h
+//	return http.ListenAndServe("0.0.0.0:"+strconv.Itoa(s.Port), nil)
 }
 
 func (s *SlackBots) handleProwPullRequest(pr github.PullRequestEvent) error {

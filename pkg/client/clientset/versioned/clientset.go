@@ -12,8 +12,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	SlackV1alpha1() slackv1alpha1.SlackV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Slack() slackv1alpha1.SlackV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -25,12 +23,6 @@ type Clientset struct {
 
 // SlackV1alpha1 retrieves the SlackV1alpha1Client
 func (c *Clientset) SlackV1alpha1() slackv1alpha1.SlackV1alpha1Interface {
-	return c.slackV1alpha1
-}
-
-// Deprecated: Slack retrieves the default version of SlackClient.
-// Please explicitly pick a version.
-func (c *Clientset) Slack() slackv1alpha1.SlackV1alpha1Interface {
 	return c.slackV1alpha1
 }
 

@@ -58,6 +58,7 @@ type SlackBots struct {
 	HmacSecretName string
 	Items          []*SlackBotOptions
 	Port           int
+	IsLighthouse   bool
 }
 
 func createSlackAppClient(f cmd.Factory) (v1client.Interface, string, error) {
