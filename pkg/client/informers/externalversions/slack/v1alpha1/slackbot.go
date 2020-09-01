@@ -5,10 +5,10 @@ package v1alpha1
 import (
 	time "time"
 
-	slackv1alpha1 "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
-	versioned "github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/jenkins-x-labs/slack/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/jenkins-x-labs/slack/pkg/client/listers/slack/v1alpha1"
+	slackv1alpha1 "github.com/jenkins-x/slack/pkg/apis/slack/v1alpha1"
+	versioned "github.com/jenkins-x/slack/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/jenkins-x/slack/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/jenkins-x/slack/pkg/client/listers/slack/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"

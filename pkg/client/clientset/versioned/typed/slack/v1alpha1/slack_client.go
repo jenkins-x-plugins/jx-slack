@@ -3,8 +3,8 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
-	"github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned/scheme"
+	v1alpha1 "github.com/jenkins-x/slack/pkg/apis/slack/v1alpha1"
+	"github.com/jenkins-x/slack/pkg/client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

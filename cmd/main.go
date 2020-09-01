@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jenkins-x-labs/slack/pkg/slackbot/cmd"
+	"github.com/jenkins-x/slack/pkg/slackbot/cmd"
 )
 
 func main() {

@@ -18,7 +18,7 @@ import (
 
 	"github.com/jenkins-x/jx/v2/pkg/users"
 
-	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
+	slackapp "github.com/jenkins-x/slack/pkg/apis/slack/v1alpha1"
 
 	"github.com/pkg/errors"
 

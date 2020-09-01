@@ -1,11 +1,10 @@
 # slack - VERY EARLY ALPHA
 
-WARNING: This is an experimental Jenkins X Labs project, it is likely to have significant change and APIs may break while
-we gather feedback and aim to get it into an alpha state.
+WARNING: This is an experimental Jenkins X project, it is likely to have significant change and APIs may break while we gather feedback and aim to get it into an alpha state.
 
 The Slack app for Jenkins X provides integration with Jenkins X and Slack, originally authored at CloudBees by Pete Muir
 
-This has been developed and tested so far using pipelines triggred by commits from GitHub and deployed using Jenkins X on Google Container Engine.
+This has been developed and tested so far using pipelines triggered by commits from GitHub and deployed using Jenkins X on Google Container Engine.
 
 ## Features
 
@@ -23,19 +22,16 @@ This has been developed and tested so far using pipelines triggred by commits fr
 
 ## Feedback
 
-Got any great ideas we can add to the Slack App? If so [Raise a issue here](https://github.com/jenkins-x-labs/issues)
+Got any great ideas we can add to the Slack App? If so [Raise a issue here](https://github.com/jenkins-x/slack/issues/new)
 
-## Install the app
-
-```bash
-jx add app slack --repository=https://jenkinsxio-labs.storage.googleapis.com/charts
-```
-Alternatively if you are using helm 3 and or the [labs boot](https://jenkins-x.io/docs/labs/boot/) approach then until the jx apps commands have been updated to work with helm 3 you can install by adding to your `jx-apps.yml`
+## Installation
+ 
+ 
+Install the slack app into [Jenkins X 3.x](https://jenkins-x.io/docs/v3/) by adding the following your `helmfile.yaml`
 
 ```yaml
-apps:
-- name: slack
-  repository: https://jenkinsxio-labs.storage.googleapis.com/charts
+charts:
+- name: jx3/slack
 ```
 
 ## Configure the app

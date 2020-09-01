@@ -11,8 +11,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	slackappapi "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
-	"github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned/fake"
 	jxv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/v2/pkg/cmd/opts"
 	"github.com/jenkins-x/jx/v2/pkg/cmd/testhelpers"
@@ -20,6 +18,8 @@ import (
 	helm_test "github.com/jenkins-x/jx/v2/pkg/helm/mocks"
 	resources_test "github.com/jenkins-x/jx/v2/pkg/kube/resources/mocks"
 	"github.com/jenkins-x/lighthouse/pkg/util"
+	slackappapi "github.com/jenkins-x/slack/pkg/apis/slack/v1alpha1"
+	"github.com/jenkins-x/slack/pkg/client/clientset/versioned/fake"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slacktest"
 	corev1 "k8s.io/api/core/v1"
@@ -28,18 +28,18 @@ import (
 )
 
 const (
-	testOrgName = "test-org"
+	testOrgName  = "test-org"
 	testRepoName = "test-repo"
-	secretName = "some-secret"
-	testChannel = "some-channel"
-	testNs = "jx"
+	secretName   = "some-secret"
+	testChannel  = "some-channel"
+	testNs       = "jx"
 )
 
 func TestLighthouseDelivery(t *testing.T) {
-	testcases := []struct{
-		name string
-		payload string
-		headers map[string]string
+	testcases := []struct {
+		name            string
+		payload         string
+		headers         map[string]string
 		expectedMessage string
 	}{{
 		name: "something",
@@ -89,14 +89,14 @@ func createSlackBot() *slackappapi.SlackBot {
 			PullRequests: []slackappapi.SlackBotMode{{
 				Channel: testChannel,
 				Orgs: []slackappapi.Org{{
-					Name: testOrgName,
+					Name:  testOrgName,
 					Repos: []string{testRepoName},
 				}},
 			}},
 			Pipelines: []slackappapi.SlackBotMode{{
 				Channel: testChannel,
 				Orgs: []slackappapi.Org{{
-					Name: testOrgName,
+					Name:  testOrgName,
 					Repos: []string{testRepoName},
 				}},
 			}},
@@ -138,14 +138,14 @@ func createTestClients(svr *slacktest.Server, bot *slackappapi.SlackBot, activit
 	kubeClient, _ := commonOpts.KubeClient()
 	jxClient, _, _ := commonOpts.JXClient()
 	return &GlobalClients{
-		SlackAppClient:    fake.NewSimpleClientset(bot),
-		Namespace:         testNs,
-		KubeClient:        kubeClient,
-		JXClient:          jxClient,
+		SlackAppClient: fake.NewSimpleClientset(bot),
+		Namespace:      testNs,
+		KubeClient:     kubeClient,
+		JXClient:       jxClient,
 		slackClientHelper: &listenerFakeSlackClient{
 			serverURL: svr.GetAPIURL(),
 		},
-		CommonOptions:     commonOpts,
+		CommonOptions: commonOpts,
 	}
 }
 

@@ -10,8 +10,8 @@ import (
 
 	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
 
-	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
-	slackappapi "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
+	slackapp "github.com/jenkins-x/slack/pkg/apis/slack/v1alpha1"
+	slackappapi "github.com/jenkins-x/slack/pkg/apis/slack/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )

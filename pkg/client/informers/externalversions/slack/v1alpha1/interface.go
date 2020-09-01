@@ -3,7 +3,7 @@
 package v1alpha1
 
 import (
-	internalinterfaces "github.com/jenkins-x-labs/slack/pkg/client/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/jenkins-x/slack/pkg/client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

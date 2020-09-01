@@ -7,12 +7,12 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
-	v1client "github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned"
 	jenkinsv1client "github.com/jenkins-x/jx/v2/pkg/client/clientset/versioned"
 	cmd "github.com/jenkins-x/jx/v2/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/v2/pkg/cmd/opts"
 	"github.com/jenkins-x/jx/v2/pkg/kube"
+	slackapp "github.com/jenkins-x/slack/pkg/apis/slack/v1alpha1"
+	v1client "github.com/jenkins-x/slack/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jenkins-x-labs/slack/pkg/slackbot"
+	"github.com/jenkins-x/slack/pkg/slackbot"
 	"k8s.io/test-infra/prow/plugins"
 
 	jxcmd "github.com/jenkins-x/jx/v2/pkg/cmd/helper"

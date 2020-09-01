@@ -1,4 +1,4 @@
-module github.com/jenkins-x-labs/slack
+module github.com/jenkins-x/slack
 
 require (
 	github.com/briandowns/spinner v1.9.0 // indirect
