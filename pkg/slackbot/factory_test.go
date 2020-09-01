@@ -8,7 +8,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	jenkinsv1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
 
 	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
 	slackappapi "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"

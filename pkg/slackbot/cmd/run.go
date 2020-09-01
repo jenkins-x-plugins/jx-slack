@@ -1,16 +1,21 @@
 package cmd
 
 import (
+	"net/http"
+	"strconv"
+
+	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/pkg/errors"
 
-	"github.com/jenkins-x/jx/pkg/log"
+	"github.com/jenkins-x/jx-logging/pkg/log"
 
 	slackappapi "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
 	informers "github.com/jenkins-x-labs/slack/pkg/client/informers/externalversions"
 	"github.com/jenkins-x-labs/slack/pkg/slackbot"
-	jxcmd "github.com/jenkins-x/jx/pkg/cmd/helper"
+	jxcmd "github.com/jenkins-x/jx/v2/pkg/cmd/helper"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
@@ -76,12 +81,24 @@ func (o *SlackAppRunOptions) Run() error {
 
 	go informer.Run(stopper)
 
+	isLighthouse := false
+	_, err = o.clients.KubeClient.AppsV1().Deployments(o.clients.Namespace).Get("tide", metav1.GetOptions{})
+	if err != nil {
+		if kubeerrors.IsNotFound(err) {
+			isLighthouse = true
+		} else {
+			return err
+		}
+	}
+
 	bots := slackbot.SlackBots{
 		GlobalClients:  o.clients,
 		HmacSecretName: o.HmacSecretName,
 		Port:           o.Port,
+		IsLighthouse:   isLighthouse,
 	}
-	err = bots.ProwExternalPluginServer()
+	handler := bots.ExternalPluginServer()
+	err = http.ListenAndServe("0.0.0.0:"+strconv.Itoa(o.Port), handler)
 	if err != nil {
 		return errors.Wrap(err, "failed to start prow plugin server")
 	}
@@ -101,10 +118,6 @@ func (o *SlackAppRunOptions) add(obj interface{}) {
 	}
 
 	o.Items = append(o.Items, bot)
-
-	// store the channel so we can update or delete it later if the SlackBot resource gets updated in the cluster
-	o.botChannels[slackBot.UID] = bot.WatchActivities()
-
 }
 
 func (o SlackAppRunOptions) onUpdate(oldObj interface{}, newObj interface{}) {

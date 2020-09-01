@@ -6,15 +6,17 @@ import (
 	"testing"
 
 	"github.com/ghodss/yaml"
+	"github.com/jenkins-x/lighthouse/pkg/jx"
+	"github.com/jenkins-x/lighthouse/pkg/record"
 
 	"github.com/pkg/errors"
 
-	"github.com/jenkins-x/jx/pkg/log"
+	"github.com/jenkins-x/jx-logging/pkg/log"
 
-	"gotest.tools/assert"
-
-	jenkinsv1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
 	"github.com/slack-go/slack"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSlackBotOptions_createAttachments(t *testing.T) {
@@ -34,11 +36,11 @@ func TestSlackBotOptions_createAttachments(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			act, err := getPipelineActivity(tt.fields.filename)
-			assert.NilError(t, err, "failed to read files")
+			assert.NoError(t, err, "failed to read files")
 
 			attachments := []slack.Attachment{}
-			for _, step := range act.Spec.Steps {
-				stepAttachments := o.createAttachments(act, &step)
+			for _, step := range act.Stages {
+				stepAttachments := o.createAttachments(act, step)
 				if len(stepAttachments) > 0 {
 					attachments = append(attachments, stepAttachments...)
 				}
@@ -57,7 +59,7 @@ func TestSlackBotOptions_createAttachments(t *testing.T) {
 	}
 }
 
-func getPipelineActivity(filename string) (*jenkinsv1.PipelineActivity, error) {
+func getPipelineActivity(filename string) (*record.ActivityRecord, error) {
 	testData := path.Join("test_data", "bot")
 	testfile, err := ioutil.ReadFile(path.Join(testData, filename))
 	if err != nil {
@@ -68,7 +70,7 @@ func getPipelineActivity(filename string) (*jenkinsv1.PipelineActivity, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal testfile %s", testfile)
 	}
-	return act, nil
+	return jx.ConvertPipelineActivity(act)
 }
 
 func Test_isUserPipelineStep(t *testing.T) {
