@@ -8,7 +8,7 @@ MAIN_SRC_FILE=cmd/main.go
 GO := GO111MODULE=on go
 GO_NOMOD :=GO111MODULE=off go
 REV := $(shell git rev-parse --short HEAD 2> /dev/null || echo 'unknown')
-ORG := jenkins-x-labs
+ORG := jenkins-x
 ORG_REPO := $(ORG)/$(NAME)
 RELEASE_ORG_REPO := $(ORG_REPO)
 ROOT_PACKAGE := github.com/$(ORG_REPO)
