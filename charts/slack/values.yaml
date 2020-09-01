@@ -33,6 +33,11 @@ readinessProbe:
   timeoutSeconds: 1
 terminationGracePeriodSeconds: 10
 
+names:
+  tokenSecret: slack-token
+  usersSecret: slack-users
+  config: slack-config
+
 hmacToken:
   name: hmac-token
 
@@ -40,8 +45,8 @@ googleSecretsManager: false
 
 role:
   rules:
-  - apiGroups:
-    - jenkins.io
+    - apiGroups:
+        - jenkins.io
     resources:
     - pipelineactivities
     verbs:

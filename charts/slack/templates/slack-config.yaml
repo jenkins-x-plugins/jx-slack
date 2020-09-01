@@ -1,0 +1,28 @@
+kind: SlackBot
+apiVersion: slack.app.jenkins-x.io/v1alpha1
+metadata:
+  name: {{ .Values.names.config | default "slack-config" | quote }}
+spec:
+  pipelines:
+    - directMessage: true
+      orgs:
+        - name: jenkins-x
+        - name: meat
+  pullRequests:
+    - channel: vegetables
+      notifyReviewers: true
+      orgs:
+        - name: vegetables
+          repos:
+            - carrots
+    - channel: brassicas
+      notifyReviewers: true
+      orgs:
+        - name: vegetables
+          repos:
+            - cabbage
+            - brussel_sprouts
+  namespace: jx
+  tokenReference:
+    kind: Secret
+    name: {{ .Values.names.tokenSecret | default "slack-token" | quote }}

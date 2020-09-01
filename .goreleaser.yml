@@ -6,7 +6,7 @@ before:
     - go mod download
 
 builds:
-  - id: gsm-controller-linux
+  - id: slack-linux
     # Path to main.go file or main package.
     # Default is `.`.
     main: ./cmd/main.go
@@ -33,7 +33,7 @@ builds:
     goarch:
       - amd64
 
-  - id: gsm-controller-amd64
+  - id: slack-amd64
     # Path to main.go file or main package.
     # Default is `.`.
     main: ./cmd/main.go
@@ -41,7 +41,7 @@ builds:
     # Binary name.
     # Can be a path (e.g. `bin/app`) to wrap the binary in a directory.
     # Default is the name of the project directory.
-    binary: gsm-controller
+    binary: slack
 
     # Custom ldflags templates.
     # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
@@ -60,7 +60,7 @@ builds:
     goarch:
       - amd64
 
-  - id: gsm-controller-windows-amd64
+  - id: slack-windows-amd64
     # Path to main.go file or main package.
     # Default is `.`.
     main: ./cmd/main.go
@@ -68,7 +68,7 @@ builds:
     # Binary name.
     # Can be a path (e.g. `bin/app`) to wrap the binary in a directory.
     # Default is the name of the project directory.
-    binary: gsm-controller
+    binary: slack
 
     # Custom ldflags templates.
     # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
