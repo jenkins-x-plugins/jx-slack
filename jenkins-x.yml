@@ -42,7 +42,7 @@ pipelineConfig:
                 dir: /workspace/source/charts/slack
               - name: upload-binaries
                 command: make goreleaser
-                image: gcr.io/jenkinsxio-labs-private/step-go-releaser:0.0.5
+                image: gcr.io/jenkinsxio/step-go-releaser
               - command: ./promote.sh
                 dir: /workspace/source
                 name: promote-release
