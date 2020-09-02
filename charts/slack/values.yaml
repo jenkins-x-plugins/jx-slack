@@ -4,7 +4,7 @@
 replicaCount: 1
 image:
   repository: gcr.io/jenkinsxio/slack
-  tag: 0.0.31
+  tag: 0.0.32
   pullPolicy: IfNotPresent
 service:
   name: slack
