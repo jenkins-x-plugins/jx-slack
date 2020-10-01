@@ -89,6 +89,12 @@ role:
         - get
         - update
     - apiGroups:
+        - apps
+      resources:
+        - deployments
+      verbs:
+        - get
+    - apiGroups:
         - slack.app.jenkins-x.io
       resources:
         - slackbots
