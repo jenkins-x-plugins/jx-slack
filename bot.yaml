@@ -1,0 +1,15 @@
+kind: SlackBot
+apiVersion: slack.app.jenkins-x.io/v1alpha1
+metadata:
+  name: jx-bot
+spec:
+  pipelines:
+  - directMessage: true
+    orgs:
+    - name: jenkins-x
+    - name: jenkins-x-plugins
+    - name: jstrachan
+  namespace: jx
+  tokenReference:
+    kind: Secret
+    name: slack-token

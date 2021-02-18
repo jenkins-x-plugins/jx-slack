@@ -4,28 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/jenkins-x/go-scm/scm"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/giturl"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/stringhelpers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/jenkins-x/jx/v2/pkg/prow"
-
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/jenkins-x/jx/v2/pkg/users"
+	"github.com/jenkins-x-plugins/jx-changelog/pkg/users"
 
 	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
 
 	"github.com/pkg/errors"
 
-	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
-	"github.com/jenkins-x/jx/v2/pkg/kube"
-
-	"github.com/jenkins-x/jx/v2/pkg/gits"
-
-	"github.com/jenkins-x/jx/v2/pkg/log"
-	"github.com/jenkins-x/jx/v2/pkg/util"
+	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
+	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	"github.com/slack-go/slack"
 )
 
@@ -105,7 +102,7 @@ type MessageReference struct {
 }
 
 func (o *SlackBotOptions) isEnabled(activity *jenkinsv1.PipelineActivity, orgs []slackapp.Org,
-	ignoreLabels []string) (bool, *gits.GitPullRequest, *users.GitUserResolver, error) {
+	ignoreLabels []string) (bool, *scm.PullRequest, *users.GitUserResolver, error) {
 	if len(orgs) > 0 {
 		found := false
 		for _, o := range orgs {
@@ -126,10 +123,10 @@ func (o *SlackBotOptions) isEnabled(activity *jenkinsv1.PipelineActivity, orgs [
 			return false, nil, nil, nil
 		}
 	}
-	var pr *gits.GitPullRequest
+	var pr *scm.PullRequest
 	var err error
 	var resolver *users.GitUserResolver
-	pr, resolver, err = o.getPullRequest(activity)
+	pr, resolver, err = o.getPullRequest(context.TODO(), activity)
 	if err != nil {
 		return false, nil, nil, errors.WithStack(err)
 	}
@@ -138,8 +135,8 @@ func (o *SlackBotOptions) isEnabled(activity *jenkinsv1.PipelineActivity, orgs [
 		found := make([]string, 0)
 		for _, l := range ignoreLabels {
 			for _, v := range pr.Labels {
-				if *v.Name == l {
-					found = append(found, *v.Name)
+				if v.Name == l {
+					found = append(found, v.Name)
 				}
 			}
 		}
@@ -161,13 +158,13 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 		if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.Orgs, cfg.IgnoreLabels); err != nil {
 			return errors.WithStack(err)
 		} else if enabled {
-			attachments, createIfMissing, err := o.createPipelineMessage(activity, pullRequest)
+			options, createIfMissing, err := o.createPipelineMessage(activity, pullRequest)
 			if err != nil {
 				return err
 			}
 			if cfg.Channel != "" {
 				channel := channelName(cfg.Channel)
-				err := o.postMessage(channel, false, pipelineMessageType, activity, nil, attachments, createIfMissing)
+				err := o.postMessage(channel, false, pipelineMessageType, activity, nil, options, createIfMissing)
 				if err != nil {
 					return errors.Wrap(err, fmt.Sprintf("error posting cfg for %s to channel %s", activity.Name,
 						channel))
@@ -176,17 +173,17 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 			}
 			if cfg.DirectMessage {
 				if pullRequest != nil {
-					id, err := o.resolveGitUserToSlackUser(pullRequest.Author, resolver)
+					id, err := o.resolveGitUserToSlackUser(&pullRequest.Author, resolver)
 					if err != nil {
-						return errors.Wrapf(err, "Cannot resolve Slack ID for Git user %s", pullRequest.Author)
+						return errors.Wrapf(err, "Cannot resolve Slack ID for Git user %s", pullRequest.Author.Name)
 					}
 					if id != "" {
-						err = o.postMessage(id, true, pipelineMessageType, activity, nil, attachments, createIfMissing)
+						err = o.postMessage(id, true, pipelineMessageType, activity, nil, options, createIfMissing)
 						if err != nil {
 							return errors.Wrap(err, fmt.Sprintf("error sending direct pipeline for %s to %s", activity.Name,
 								id))
 						}
-						log.Logger().Infof("Direct message sent to %s\n", pullRequest.Author)
+						log.Logger().Infof("Direct message sent to %s\n", pullRequest.Author.Name)
 					}
 				}
 			}
@@ -207,16 +204,17 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 		return errors.Wrapf(err, "getting pull request number %s", activity.Name)
 	}
 	if prn > 0 {
+		ctx := context.TODO()
 		for _, cfg := range o.PullRequests {
 			if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.Orgs, cfg.IgnoreLabels); err != nil {
 				return errors.WithStack(err)
 			} else if enabled {
 				log.Logger().Infof("Preparing review request message for %s\n", activity.Name)
-				oldestActivity, latestActivity, all, err := o.findPipelineActivities(activity)
+				oldestActivity, latestActivity, all, err := o.findPipelineActivities(ctx, activity)
 				if err != nil {
 					return err
 				}
-				buildNumber, err := strconv.Atoi(kube.CreatePipelineDetails(activity).Build)
+				buildNumber, err := strconv.Atoi(CreatePipelineDetails(activity).Build)
 				if err != nil {
 					return err
 				}
@@ -224,7 +222,7 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 				if latestActivity != nil {
 					// TODO Some activities could be missing the labels that identify them properly,
 					// in that case just display what we have?
-					latestBuildNumber, err = strconv.Atoi(kube.CreatePipelineDetails(latestActivity).Build)
+					latestBuildNumber, err = strconv.Atoi(CreatePipelineDetails(latestActivity).Build)
 				}
 				if oldestActivity == nil {
 					// TODO Some activities could be missing the labels that identify them so what do we do?
@@ -242,10 +240,13 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 						createIfMissing = false
 					}
 					if attachments != nil {
+						options := []slack.MsgOption{
+							slack.MsgOptionAttachments(attachments...),
+						}
 						if cfg.Channel != "" {
 							channel := channelName(cfg.Channel)
 							err := o.postMessage(channel, false, pullRequestReviewMessageType, oldestActivity,
-								all, attachments, createIfMissing)
+								all, options, createIfMissing)
 							if err != nil {
 								return errors.Wrap(err, fmt.Sprintf("error posting PR review request for %s to channel %s",
 									activity.Name,
@@ -256,7 +257,7 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 							for _, user := range reviewers {
 								if user != nil {
 									err = o.postMessage(user.ID, true, pullRequestReviewMessageType, oldestActivity,
-										all, attachments, createIfMissing)
+										all, options, createIfMissing)
 									if err != nil {
 										return errors.Wrap(err, fmt.Sprintf("error sending direct PR review request for %s to %s",
 											activity.Name,
@@ -278,27 +279,28 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 }
 
 func (o *SlackBotOptions) isLgtmRepo(activity *jenkinsv1.PipelineActivity) (bool, error) {
-	options := prow.Options{
-		KubeClient: o.KubeClient,
-		NS:         o.Namespace,
-	}
-	cfg, _, err := options.GetProwConfig()
-	if err != nil {
-		return false, errors.Wrapf(err, "getting prow config")
-	}
-	pipeDetails := kube.CreatePipelineDetails(activity)
-	for _, query := range cfg.Keeper.Queries {
-		if query.ForRepo(pipeDetails.GitOwner, pipeDetails.GitRepository) {
-			if util.Contains(query.Labels, "lgtm") {
-				return true, nil
+	/*
+		options := prow.Options{
+			KubeClient: o.KubeClient,
+			NS:         o.Namespace,
+		}
+		cfg, _, err := options.GetProwConfig()
+		if err != nil {
+			return false, errors.Wrapf(err, "getting prow config")
+		}
+		pipeDetails := CreatePipelineDetails(activity)
+		for _, query := range cfg.Keeper.Queries {
+			if query.ForRepo(pipeDetails.GitOwner, pipeDetails.GitRepository) {
+				if util.Contains(query.Labels, "lgtm") {
+					return true, nil
+				}
 			}
 		}
-	}
+	*/
 	return false, nil
 }
 
-func (o *SlackBotOptions) findPipelineActivities(activity *jenkinsv1.PipelineActivity) (oldest *jenkinsv1.
-	PipelineActivity, latest *jenkinsv1.PipelineActivity, all []jenkinsv1.PipelineActivity, err error) {
+func (o *SlackBotOptions) findPipelineActivities(ctx context.Context, activity *jenkinsv1.PipelineActivity) (oldest *jenkinsv1.PipelineActivity, latest *jenkinsv1.PipelineActivity, all []jenkinsv1.PipelineActivity, err error) {
 	// This is the trigger activity. Working out the correct slack message is a bit tricky,
 	// as we have a 1:n mapping between PRs and PipelineActivities (which store the message info).
 	// The algorithm in use just picks the earliest pipeline activity as determined by build number
@@ -307,9 +309,9 @@ func (o *SlackBotOptions) findPipelineActivities(activity *jenkinsv1.PipelineAct
 		return nil, nil, nil, err
 	}
 
-	pipelineDetails := kube.CreatePipelineDetails(activity)
+	pipelineDetails := CreatePipelineDetails(activity)
 
-	acts, err := o.getPipelineActivities(pipelineDetails.GitOwner, pipelineDetails.GitRepository, prn)
+	acts, err := o.getPipelineActivities(ctx, pipelineDetails.GitOwner, pipelineDetails.GitRepository, prn)
 
 	if err != nil {
 		return nil, nil, nil, err
@@ -331,137 +333,138 @@ func getStatus(overrideStatus *slackapp.Status, defaultStatus *slackapp.Status) 
 }
 
 // createReviewersMessage will return a slackapp message notifying reviewers of a PR, or nil if the activity is not a PR
-func (o *SlackBotOptions) createReviewersMessage(activity *jenkinsv1.PipelineActivity, notifyReviewers bool, pr *gits.GitPullRequest, resolver *users.GitUserResolver) ([]slack.Attachment, []*slack.User, *slackapp.Status, error) {
-	author, err := resolver.Resolve(pr.Author)
+func (o *SlackBotOptions) createReviewersMessage(activity *jenkinsv1.PipelineActivity, notifyReviewers bool, pr *scm.PullRequest, resolver *users.GitUserResolver) ([]slack.Attachment, []*slack.User, *slackapp.Status, error) {
+	author, err := resolver.Resolve(&pr.Author)
 	if err != nil {
 		return nil, nil, nil, errors.WithStack(err)
 	}
-	if pr != nil {
-		attachments := []slack.Attachment{}
-		actions := []slack.AttachmentAction{}
-		fallback := []string{}
-		status := pipelineStatus(activity)
-
-		authorName, err := o.mentionOrLinkUser(author)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		mentions := make([]string, 0)
-		reviewers := make([]*slack.User, 0)
-		if notifyReviewers {
-
-			// Match requested requested reviewers to slack users (if possible)
-			for _, r := range pr.RequestedReviewers {
-				u, err := resolver.Resolve(r)
-				if err != nil {
-					return nil, nil, nil, errors.Wrapf(err, "resolving %s user %s as Jenkins X user",
-						resolver.GitProviderKey(), r.Login)
-				}
-				if u != nil {
-					mention, err := o.mentionOrLinkUser(u)
-					if err != nil {
-						return nil, nil, nil, errors.Wrapf(err,
-							"generating mention or link for user record %s with email %s", u.Name, u.Spec.Email)
-					}
-					mentions = append(mentions, mention)
-				}
-			}
-		}
-
-		// The default state is not approved
-		reviewStatus := getStatus(o.Statuses.NotApproved, defaultStatuses.NotApproved)
-
-		// A bit of a hacky way to do this,
-		// but until we get a better CRD based interface to the prow this will work
-		lgtmRepo, err := o.isLgtmRepo(activity)
-		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "checking if repo for %s is configured for lgtm", activity.Name)
-		}
-		if lgtmRepo {
-			if containsOneOf(pr.Labels, "lgtm") {
-				reviewStatus = getStatus(o.Statuses.LGTM, defaultStatuses.LGTM)
-			}
-		} else {
-			if containsOneOf(pr.Labels, "approved") {
-				reviewStatus = getStatus(o.Statuses.Approved, defaultStatuses.Approved)
-			}
-		}
-		if containsOneOf(pr.Labels, "do-not-merge/hold") {
-			reviewStatus = getStatus(o.Statuses.Hold, defaultStatuses.Hold)
-		}
-		if containsOneOf(pr.Labels, "needs-ok-to-test") {
-			reviewStatus = getStatus(o.Statuses.NeedsOkToTest, defaultStatuses.NeedsOkToTest)
-		}
-
-		// The default build state is unknown
-		buildStatus := getStatus(o.Statuses.Unknown, defaultStatuses.Unknown)
-		if pr.Merged != nil && *pr.Merged {
-			buildStatus = getStatus(o.Statuses.Merged, defaultStatuses.Merged)
-		} else if pr.IsClosed() {
-			buildStatus = getStatus(o.Statuses.Closed, defaultStatuses.Closed)
-		} else {
-			switch activity.Spec.Status {
-			case jenkinsv1.ActivityStatusTypePending:
-				buildStatus = getStatus(o.Statuses.Pending, defaultStatuses.Pending)
-			case jenkinsv1.ActivityStatusTypeRunning:
-				buildStatus = getStatus(o.Statuses.Running, defaultStatuses.Running)
-			case jenkinsv1.ActivityStatusTypeSucceeded:
-				buildStatus = getStatus(o.Statuses.Succeeded, defaultStatuses.Succeeded)
-			case jenkinsv1.ActivityStatusTypeFailed:
-				buildStatus = getStatus(o.Statuses.Failed, defaultStatuses.Failed)
-			case jenkinsv1.ActivityStatusTypeError:
-				buildStatus = getStatus(o.Statuses.Errored, defaultStatuses.Errored)
-			case jenkinsv1.ActivityStatusTypeAborted:
-				buildStatus = getStatus(o.Statuses.Aborted, defaultStatuses.Aborted)
-			}
-		}
-
-		mentionsString := strings.Join(mentions, " ")
-		pleaseText := "please"
-		if len(mentions) == 0 {
-			pleaseText = "Please"
-		}
-		messageText := fmt.Sprintf("%s %s review %s created on %s by %s",
-			mentionsString,
-			pleaseText,
-			link(fmt.Sprintf("Pull Request %s (%s)", pullRequestName(pr.URL), pr.Title), pr.URL),
-			repositoryName(activity),
-			authorName)
-		attachment := slack.Attachment{
-			CallbackID: "preview:" + activity.Name,
-			Color:      attachmentColor(status),
-			Text:       messageText,
-
-			Fallback: strings.Join(fallback, ", "),
-			Actions:  actions,
-			Fields: []slack.AttachmentField{
-				slack.AttachmentField{
-					Value: fmt.Sprintf("%s %s", reviewStatus.Emoji, reviewStatus.Text),
-					Short: true,
-				},
-				slack.AttachmentField{
-					Value: fmt.Sprintf("%s %s", buildStatus.Emoji, buildStatus.Text),
-					Short: true,
-				},
-			},
-		}
-		updatedEpochTime := getLastUpdatedTime(pr, activity)
-		if updatedEpochTime > 0 {
-			attachment.Ts = json.Number(strconv.FormatInt(updatedEpochTime, 10))
-		}
-
-		attachments = append(attachments, attachment)
-
-		return attachments, reviewers, buildStatus, nil
+	if author == nil || pr == nil {
+		return nil, nil, nil, nil
 	}
-	return nil, nil, nil, nil
+	attachments := []slack.Attachment{}
+	actions := []slack.AttachmentAction{}
+	fallback := []string{}
+	status := pipelineStatus(activity)
+
+	authorName, err := o.mentionOrLinkUser(author)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	mentions := make([]string, 0)
+	reviewers := make([]*slack.User, 0)
+	if notifyReviewers {
+
+		// Match requested requested reviewers to slack users (if possible)
+		for i := range pr.Reviewers {
+			r := &pr.Reviewers[i]
+			u, err := resolver.Resolve(r)
+			if err != nil {
+				return nil, nil, nil, errors.Wrapf(err, "resolving %s user %s as Jenkins X user",
+					resolver.GitProviderKey(), r.Login)
+			}
+			if u != nil {
+				mention, err := o.mentionOrLinkUser(u)
+				if err != nil {
+					return nil, nil, nil, errors.Wrapf(err,
+						"generating mention or link for user record %s with email %s", u.Name, u.Email)
+				}
+				mentions = append(mentions, mention)
+			}
+		}
+	}
+
+	// The default state is not approved
+	reviewStatus := getStatus(o.Statuses.NotApproved, defaultStatuses.NotApproved)
+
+	// A bit of a hacky way to do this,
+	// but until we get a better CRD based interface to the prow this will work
+	lgtmRepo, err := o.isLgtmRepo(activity)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "checking if repo for %s is configured for lgtm", activity.Name)
+	}
+	if lgtmRepo {
+		if containsOneOf(pr.Labels, "lgtm") {
+			reviewStatus = getStatus(o.Statuses.LGTM, defaultStatuses.LGTM)
+		}
+	} else {
+		if containsOneOf(pr.Labels, "approved") {
+			reviewStatus = getStatus(o.Statuses.Approved, defaultStatuses.Approved)
+		}
+	}
+	if containsOneOf(pr.Labels, "do-not-merge/hold") {
+		reviewStatus = getStatus(o.Statuses.Hold, defaultStatuses.Hold)
+	}
+	if containsOneOf(pr.Labels, "needs-ok-to-test") {
+		reviewStatus = getStatus(o.Statuses.NeedsOkToTest, defaultStatuses.NeedsOkToTest)
+	}
+
+	// The default build state is unknown
+	buildStatus := getStatus(o.Statuses.Unknown, defaultStatuses.Unknown)
+	if pr.Merged {
+		buildStatus = getStatus(o.Statuses.Merged, defaultStatuses.Merged)
+	} else if pr.Closed {
+		buildStatus = getStatus(o.Statuses.Closed, defaultStatuses.Closed)
+	} else {
+		switch activity.Spec.Status {
+		case jenkinsv1.ActivityStatusTypePending:
+			buildStatus = getStatus(o.Statuses.Pending, defaultStatuses.Pending)
+		case jenkinsv1.ActivityStatusTypeRunning:
+			buildStatus = getStatus(o.Statuses.Running, defaultStatuses.Running)
+		case jenkinsv1.ActivityStatusTypeSucceeded:
+			buildStatus = getStatus(o.Statuses.Succeeded, defaultStatuses.Succeeded)
+		case jenkinsv1.ActivityStatusTypeFailed:
+			buildStatus = getStatus(o.Statuses.Failed, defaultStatuses.Failed)
+		case jenkinsv1.ActivityStatusTypeError:
+			buildStatus = getStatus(o.Statuses.Errored, defaultStatuses.Errored)
+		case jenkinsv1.ActivityStatusTypeAborted:
+			buildStatus = getStatus(o.Statuses.Aborted, defaultStatuses.Aborted)
+		}
+	}
+
+	mentionsString := strings.Join(mentions, " ")
+	pleaseText := "please"
+	if len(mentions) == 0 {
+		pleaseText = "Please"
+	}
+	messageText := fmt.Sprintf("%s %s review %s created on %s by %s",
+		mentionsString,
+		pleaseText,
+		link(fmt.Sprintf("Pull Request %s (%s)", pullRequestName(pr.Link), pr.Title), pr.Link),
+		repositoryName(activity),
+		authorName)
+	attachment := slack.Attachment{
+		CallbackID: "preview:" + activity.Name,
+		Color:      attachmentColor(status),
+		Text:       messageText,
+
+		Fallback: strings.Join(fallback, ", "),
+		Actions:  actions,
+		Fields: []slack.AttachmentField{
+			slack.AttachmentField{
+				Value: fmt.Sprintf("%s %s", reviewStatus.Emoji, reviewStatus.Text),
+				Short: true,
+			},
+			slack.AttachmentField{
+				Value: fmt.Sprintf("%s %s", buildStatus.Emoji, buildStatus.Text),
+				Short: true,
+			},
+		},
+	}
+	updatedEpochTime := getLastUpdatedTime(pr, activity)
+	if updatedEpochTime > 0 {
+		attachment.Ts = json.Number(strconv.FormatInt(updatedEpochTime, 10))
+	}
+
+	attachments = append(attachments, attachment)
+
+	return attachments, reviewers, buildStatus, nil
 }
 
-func getLastUpdatedTime(pr *gits.GitPullRequest, activity *jenkinsv1.PipelineActivity) int64 {
+func getLastUpdatedTime(pr *scm.PullRequest, activity *jenkinsv1.PipelineActivity) int64 {
 	updatedEpochTime := int64(-1)
-	if pr != nil && pr.UpdatedAt != nil {
-		updatedEpochTime = pr.UpdatedAt.Unix()
+	if pr != nil {
+		updatedEpochTime = pr.Updated.Unix()
 	}
 	// Check if there is a started or completion timestamp that is more recent
 	if activity != nil && activity.Spec.StartedTimestamp != nil {
@@ -477,10 +480,10 @@ func getLastUpdatedTime(pr *gits.GitPullRequest, activity *jenkinsv1.PipelineAct
 	return updatedEpochTime
 }
 
-func containsOneOf(a []*gits.Label, x ...string) bool {
+func containsOneOf(a []*scm.Label, x ...string) bool {
 	for _, n := range a {
 		for _, y := range x {
-			if y == *n.Name {
+			if y == n.Name {
 				return true
 			}
 		}
@@ -488,7 +491,7 @@ func containsOneOf(a []*gits.Label, x ...string) bool {
 	return false
 }
 
-func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActivity, pr *gits.GitPullRequest) ([]slack.Attachment, bool, error) {
+func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActivity, pr *scm.PullRequest) ([]slack.MsgOption, bool, error) {
 	spec := &activity.Spec
 	status := pipelineStatus(activity)
 	icon := pipelineIcon(status)
@@ -500,9 +503,17 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 	if prn, err := getPullRequestNumber(activity); err != nil {
 		return nil, false, err
 	} else if prn > 0 {
-		messageText = fmt.Sprintf("%s%s", messageText, link(pullRequestName(pr.URL), pr.URL))
+		messageText = fmt.Sprintf("%s%s", messageText, link(pullRequestName(pr.Link), pr.Link))
 	}
 	messageText = fmt.Sprintf("%s (Build %s)", messageText, buildNumber(spec))
+
+	// lets ignore old pipelines
+	dayAgo := time.Now().Add(time.Duration((-24) * time.Hour)).Unix()
+	createIfMissing := true
+	lastUpdatedTime := getLastUpdatedTime(nil, activity)
+	if lastUpdatedTime < dayAgo {
+		createIfMissing = false
+	}
 
 	attachments := []slack.Attachment{}
 	actions := []slack.AttachmentAction{}
@@ -551,29 +562,28 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 		Actions:    actions,
 	}
 
-	lastUpdatedTime := getLastUpdatedTime(nil, activity)
 	if lastUpdatedTime > 0 {
 		attachment.Ts = json.Number(strconv.FormatInt(lastUpdatedTime, 10))
-	}
-	dayAgo := time.Now().Add(time.Duration((-24) * time.Hour)).Unix()
-	createIfMissing := true
-	if lastUpdatedTime < dayAgo {
-		createIfMissing = false
 	}
 
 	attachments = append(attachments, attachment)
 
-	for _, step := range spec.Steps {
-		stepAttachments := o.createAttachments(activity, &step)
-		if len(stepAttachments) > 0 {
-			attachments = append(attachments, stepAttachments...)
+	/*
+		for _, step := range spec.Steps {
+			stepAttachments := o.createAttachments(activity, &step)
+			if len(stepAttachments) > 0 {
+				attachments = append(attachments, stepAttachments...)
+			}
 		}
-	}
+	*/
 
-	return attachments, createIfMissing, nil
+	options := []slack.MsgOption{
+		slack.MsgOptionAttachments(attachments...),
+	}
+	return options, createIfMissing, nil
 }
 
-func (o *SlackBotOptions) getSlackUserID(gitUser *gits.GitUser, resolver *users.GitUserResolver) (string, error) {
+func (o *SlackBotOptions) getSlackUserID(gitUser *scm.User, resolver *users.GitUserResolver) (string, error) {
 	if gitUser == nil {
 		return "", fmt.Errorf("User cannot be nil")
 	}
@@ -587,7 +597,7 @@ func (o *SlackBotOptions) getSlackUserID(gitUser *gits.GitUser, resolver *users.
 
 // getPullRequestNumber extracts the pull request number from the activity or returns 0 if it's not a pull request
 func getPullRequestNumber(activity *jenkinsv1.PipelineActivity) (int, error) {
-	pipelineDetails := kube.CreatePipelineDetails(activity)
+	pipelineDetails := CreatePipelineDetails(activity)
 	if strings.HasPrefix(strings.ToLower(pipelineDetails.BranchName), "pr-") {
 		return strconv.Atoi(strings.TrimPrefix(strings.ToLower(pipelineDetails.BranchName), "pr-"))
 	}
@@ -595,7 +605,7 @@ func getPullRequestNumber(activity *jenkinsv1.PipelineActivity) (int, error) {
 }
 
 func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messageType string,
-	activity *jenkinsv1.PipelineActivity, all []jenkinsv1.PipelineActivity, attachments []slack.Attachment,
+	activity *jenkinsv1.PipelineActivity, all []jenkinsv1.PipelineActivity, options []slack.MsgOption,
 	createIfMissing bool) error {
 	timestamp := ""
 	messageRef := o.findMessageRefViaAnnotations(activity, channel, messageType)
@@ -610,13 +620,13 @@ func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messag
 		channelId = messageRef.ChannelID
 	}
 
+	if o.Timestamps == nil {
+		o.Timestamps = map[string]map[string]*MessageReference{}
+	}
 	if _, ok := o.Timestamps[channel]; !ok {
 		o.Timestamps[channel] = make(map[string]*MessageReference, 0)
 	}
-	//channelID, timestamp, err := o.SlackClient.PostMessage(o.Channels, messageText, params, slackbot.MsgOptionUpdate(timestamp))
-	options := []slack.MsgOption{
-		slack.MsgOptionAttachments(attachments...),
-	}
+
 	if directMessage {
 		channel, _, _, err := o.SlackClient.OpenConversation(&slack.OpenConversationParameters{
 			Users: []string{
@@ -642,7 +652,9 @@ func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messag
 
 	}
 	if post {
-		channelId, timestamp, _, err := o.SlackClient.SendMessageContext(context.Background(), channelId, options...)
+		ctx := context.TODO()
+
+		channelId, timestamp, _, err := o.SlackClient.SendMessage(channelId, options...)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("(post channelId: %s, timestamp: %s)", channelId, timestamp))
 		}
@@ -654,7 +666,7 @@ func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messag
 		value := annotationValue(channelId, timestamp)
 		if all == nil {
 			if activity.Annotations[key] != value {
-				err = o.annotatePipelineActivity(activity, key, value)
+				err = o.annotatePipelineActivity(ctx, activity, key, value)
 				if err != nil {
 					return err
 				}
@@ -662,7 +674,7 @@ func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messag
 		} else {
 			for _, a := range all {
 				if a.Annotations[key] != value {
-					err = o.annotatePipelineActivity(&a, key, value)
+					err = o.annotatePipelineActivity(ctx, &a, key, value)
 					if err != nil {
 						return err
 					}
@@ -674,7 +686,7 @@ func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messag
 }
 
 //getPullRequest will return the PullRequestInfo for the activity, or nil if it's not a pull request
-func (o *SlackBotOptions) getPullRequest(activity *jenkinsv1.PipelineActivity) (pr *gits.GitPullRequest,
+func (o *SlackBotOptions) getPullRequest(ctx context.Context, activity *jenkinsv1.PipelineActivity) (pr *scm.PullRequest,
 	resolver *users.GitUserResolver, err error) {
 	if prn, err := getPullRequestNumber(activity); prn > 0 {
 		if err != nil {
@@ -683,20 +695,20 @@ func (o *SlackBotOptions) getPullRequest(activity *jenkinsv1.PipelineActivity) (
 		if activity.Spec.GitURL == "" {
 			return nil, nil, fmt.Errorf("no GitURL on PipelineActivity %s", activity.Name)
 		}
-		gitProvider, gitInfo, err := o.CommonOptions.CreateGitProviderForURLWithoutKind(activity.Spec.GitURL)
+		gitInfo, err := giturl.ParseGitURL(activity.Spec.GitURL)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, errors.Wrapf(err, "failed to parse git URL %s", activity.Spec.GitURL)
 		}
+
 		prn, err := getPullRequestNumber(activity)
 		if err != nil {
 			return nil, nil, err
 		}
 		resolver := &users.GitUserResolver{
-			Namespace:   o.Namespace,
-			GitProvider: gitProvider,
-			JXClient:    o.JXClient,
+			GitProvider: o.ScmClient,
 		}
-		pr, err := gitProvider.GetPullRequest(gitInfo.Organisation, gitInfo, prn)
+		fullName := scm.Join(gitInfo.Organisation, gitInfo.Name)
+		pr, _, err := o.ScmClient.PullRequests.Find(ctx, fullName, prn)
 		return pr, resolver, err
 	}
 	return nil, nil, nil
@@ -835,7 +847,7 @@ func (o *SlackBotOptions) createPromoteAttachments(activity *jenkinsv1.PipelineA
 	return attachments
 }
 
-func (o *SlackBotOptions) annotatePipelineActivity(activity *jenkinsv1.PipelineActivity, key string, value string) error {
+func (o *SlackBotOptions) annotatePipelineActivity(ctx context.Context, activity *jenkinsv1.PipelineActivity, key string, value string) error {
 	newActivity := activity.DeepCopy()
 	if newActivity.Annotations == nil {
 		newActivity.Annotations = make(map[string]string)
@@ -849,8 +861,8 @@ func (o *SlackBotOptions) annotatePipelineActivity(activity *jenkinsv1.PipelineA
 	if err != nil {
 		return errors.Wrapf(err, "marshaling patch to add annotation %s=%s to %s", key, value, activity.Name)
 	}
-	_, err = o.JXClient.JenkinsV1().PipelineActivities(o.Namespace).Patch(activity.Name, types.JSONPatchType,
-		jsonPatch)
+	_, err = o.JXClient.JenkinsV1().PipelineActivities(o.Namespace).Patch(ctx, activity.Name, types.JSONPatchType,
+		jsonPatch, metav1.PatchOptions{})
 	return err
 }
 
@@ -891,7 +903,7 @@ func pipelineName(activity *jenkinsv1.PipelineActivity) (string, error) {
 }
 
 func repositoryName(act *jenkinsv1.PipelineActivity) string {
-	details := kube.CreatePipelineDetails(act)
+	details := CreatePipelineDetails(act)
 	gitURL := act.Spec.GitURL
 	ownerURL := strings.TrimSuffix(gitURL, "/")
 	idx := strings.LastIndex(ownerURL, "/")
@@ -901,7 +913,53 @@ func repositoryName(act *jenkinsv1.PipelineActivity) string {
 	return link(details.GitOwner, ownerURL) + "/" + link(details.GitRepository, gitURL)
 }
 
-func (o *SlackBotOptions) mentionOrLinkUser(user *jenkinsv1.User) (string, error) {
+type PipelineDetails struct {
+	GitOwner      string
+	GitRepository string
+	BranchName    string
+	Pipeline      string
+	Build         string
+	Context       string
+}
+
+// CreatePipelineDetails creates a PipelineDetails object populated from the activity
+func CreatePipelineDetails(activity *jenkinsv1.PipelineActivity) *PipelineDetails {
+	spec := &activity.Spec
+	repoOwner := spec.GitOwner
+	repoName := spec.GitRepository
+	buildNumber := spec.Build
+	branchName := ""
+	context := spec.Context
+	pipeline := spec.Pipeline
+	if pipeline != "" {
+		paths := strings.Split(pipeline, "/")
+		if len(paths) > 2 {
+			if repoOwner == "" {
+				repoOwner = paths[0]
+			}
+			if repoName == "" {
+				repoName = paths[1]
+			}
+			branchName = paths[2]
+		}
+	}
+	if branchName == "" {
+		branchName = "master"
+	}
+	if pipeline == "" && (repoName != "" && repoOwner != "") {
+		pipeline = repoOwner + "/" + repoName + "/" + branchName
+	}
+	return &PipelineDetails{
+		GitOwner:      repoOwner,
+		GitRepository: repoName,
+		BranchName:    branchName,
+		Pipeline:      pipeline,
+		Build:         buildNumber,
+		Context:       context,
+	}
+}
+
+func (o *SlackBotOptions) mentionOrLinkUser(user *jenkinsv1.UserDetails) (string, error) {
 	id, err := o.SlackUserResolver.SlackUserLogin(user)
 	if err != nil {
 		return "", err
@@ -909,11 +967,11 @@ func (o *SlackBotOptions) mentionOrLinkUser(user *jenkinsv1.User) (string, error
 	if id != "" {
 		return mentionUser(id), nil
 	}
-	if user.Spec.Name != "" && user.Spec.URL != "" {
-		return link(user.Spec.Name, user.Spec.URL), nil
+	if user.Name != "" && user.URL != "" {
+		return link(user.Name, user.URL), nil
 	}
-	if user.Spec.Name != "" {
-		return user.Spec.Name, nil
+	if user.Name != "" {
+		return user.Name, nil
 	}
 	return "", nil
 }
@@ -944,7 +1002,7 @@ func mergeShaText(gitURL, sha string) string {
 	short := sha[0:7]
 	cleanUrl := strings.TrimSuffix(gitURL, ".git")
 	if cleanUrl != "" {
-		cleanUrl = util.UrlJoin(cleanUrl, "commit", sha)
+		cleanUrl = stringhelpers.UrlJoin(cleanUrl, "commit", sha)
 	}
 	return link(short, cleanUrl)
 }
@@ -974,7 +1032,7 @@ func pullRequestStatusString(text string) string {
 	}
 }
 
-func (o *SlackBotOptions) resolveGitUserToSlackUser(user *gits.GitUser, resolver *users.GitUserResolver) (string,
+func (o *SlackBotOptions) resolveGitUserToSlackUser(user *scm.User, resolver *users.GitUserResolver) (string,
 	error) {
 	resolved, err := resolver.Resolve(user)
 	if err != nil {

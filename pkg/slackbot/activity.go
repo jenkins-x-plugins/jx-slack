@@ -1,17 +1,17 @@
 package slackbot
 
 import (
+	"context"
 	"fmt"
-
-	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
-	informers "github.com/jenkins-x/jx/v2/pkg/client/informers/externalversions"
-	"github.com/jenkins-x/jx/v2/pkg/log"
+	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
+	informers "github.com/jenkins-x/jx-api/v4/pkg/client/informers/externalversions"
+	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
-func (c *GlobalClients) getPipelineActivities(org string, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
-	return c.JXClient.JenkinsV1().PipelineActivities(c.Namespace).List(metav1.ListOptions{
+func (c *SlackBotOptions) getPipelineActivities(ctx context.Context, org string, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
+	return c.JXClient.JenkinsV1().PipelineActivities(c.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("owner=%s, branch=PR-%d, repository=%s", org, prn, repo),
 	})
 }
@@ -33,7 +33,8 @@ func (o *SlackBotOptions) WatchActivities() chan struct{} {
 		UpdateFunc: o.onUpdate,
 	})
 
-	go informer.Run(stopper)
+	//go informer.Run(stopper)
+	informer.Run(stopper)
 
 	return stopper
 }

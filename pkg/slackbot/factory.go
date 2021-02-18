@@ -1,19 +1,22 @@
 package slackbot
 
 import (
-	"fmt"
+	slackappapi "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
+	"github.com/jenkins-x/go-scm/scm"
+	"github.com/jenkins-x/go-scm/scm/factory"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/kube"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/kube/jxclient"
+	"github.com/jenkins-x/jx-logging/v3/pkg/log"
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/runtime"
+	"os"
 
 	"github.com/slack-go/slack"
 
 	"k8s.io/client-go/kubernetes"
 
 	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
-	v1client "github.com/jenkins-x-labs/slack/pkg/client/clientset/versioned"
-	jenkinsv1client "github.com/jenkins-x/jx/v2/pkg/client/clientset/versioned"
-	cmd "github.com/jenkins-x/jx/v2/pkg/cmd/clients"
-	"github.com/jenkins-x/jx/v2/pkg/cmd/opts"
-	"github.com/jenkins-x/jx/v2/pkg/kube"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	jenkinsv1client "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned"
 )
 
 const (
@@ -21,138 +24,116 @@ const (
 	DefaultPort           = 8080
 )
 
-// GlobalClients are a set of clients shared for each SlackBot
-type GlobalClients struct {
-	SlackAppClient v1client.Interface
-	Namespace      string
-	KubeClient     kubernetes.Interface
-	JXClient       jenkinsv1client.Interface
-	Factory        cmd.Factory
-	slackClientHelper
-	// TODO not great but needed until Git Provider stuff is better unwound...
-	CommonOptions *opts.CommonOptions
-}
-
-type slackWrapper struct{}
-
 // SlackBotOptions contains options for the SlackBot
 type SlackBotOptions struct {
-	*GlobalClients
-
+	Namespace         string
+	KubeClient        kubernetes.Interface
+	JXClient          jenkinsv1client.Interface
 	SlackClient       *slack.Client
+	ScmClient         *scm.Client
 	Name              string
 	Pipelines         []slackapp.SlackBotMode
 	PullRequests      []slackapp.SlackBotMode
-	Namespace         string
 	Statuses          slackapp.Statuses
 	Orgs              []slackapp.Org
 	Timestamps        map[string]map[string]*MessageReference
-	SlackUserResolver *SlackUserResolver
+	SlackUserResolver SlackUserResolver
 
 	HmacSecretName string
 	Port           int
 }
 
 type SlackBots struct {
-	*GlobalClients
 	HmacSecretName string
 	Items          []*SlackBotOptions
 	Port           int
 }
 
-func createSlackAppClient(f cmd.Factory) (v1client.Interface, string, error) {
-	config, err := f.CreateKubeConfig()
-	kuber := kube.NewKubeConfig()
+// Validate configures the clients for the slack bot
+func (o *SlackBotOptions) Validate(slackBot *slackapp.SlackBot) error {
+	if o.SlackClient == nil {
+		token := os.Getenv("SLACK_TOKEN")
+		if token == "" {
+			return errors.Errorf("no $SLACK_TOKEN defined")
+		}
+
+		u := os.Getenv("SLACK_URL")
+		if u != "" {
+			log.Logger().Infof("using slack URL %s", u)
+			o.SlackClient = slack.New(token, slack.OptionAPIURL(u))
+		} else {
+			o.SlackClient = slack.New(token)
+		}
+	}
+	if o.Name == "" {
+		o.Name = slackBot.Name
+	}
+	o.Pipelines = slackBot.Spec.Pipelines
+	o.PullRequests = slackBot.Spec.PullRequests
+	o.Statuses = slackBot.Spec.Statuses
+
+	var err error
+	o.KubeClient, o.Namespace, err = kube.LazyCreateKubeClientAndNamespace(o.KubeClient, o.Namespace)
 	if err != nil {
-		return nil, "", err
+		return err
 	}
-	kubeConfig, _, err := kuber.LoadConfig()
+
+	o.JXClient, err = jxclient.LazyCreateJXClient(o.JXClient)
 	if err != nil {
-		return nil, "", err
-	}
-	ns := kube.CurrentNamespace(kubeConfig)
-	client, err := v1client.NewForConfig(config)
-	if err != nil {
-		return nil, ns, err
-	}
-	return client, ns, err
-}
-
-// CreateClients creates the default global clients
-func CreateClients() (*GlobalClients, error) {
-	factory := cmd.NewFactory()
-
-	slackAppClient, ns, err := createSlackAppClient(factory)
-	if err != nil {
-		return nil, err
+		return err
 	}
 
-	kubeClient, ns, err := factory.CreateKubeClient()
-	if err != nil {
-		return nil, err
+	if o.ScmClient == nil {
+		o.ScmClient, err = factory.NewClientFromEnvironment()
+		if err != nil {
+			return errors.Wrapf(err, "failed to create SCM client")
+		}
 	}
-
-	jxClient, ns, err := factory.CreateJXClient()
-	if err != nil {
-		return nil, err
-	}
-
-	commonOptions := opts.NewCommonOptionsWithFactory(factory)
-
-	return &GlobalClients{
-		SlackAppClient:    slackAppClient,
-		Namespace:         ns,
-		KubeClient:        kubeClient,
-		JXClient:          jxClient,
-		Factory:           factory,
-		CommonOptions:     &commonOptions,
-		slackClientHelper: &slackWrapper{},
-	}, nil
-}
-
-type slackClientHelper interface {
-	getSlackClient(token string, options ...slack.Option) *slack.Client
-}
-
-func (s slackWrapper) getSlackClient(token string, options ...slack.Option) *slack.Client {
-	return slack.New(token, options...)
-}
-
-// CreateSlackBot configures a SlackBot
-func CreateSlackBot(c *GlobalClients, slackBot *slackapp.SlackBot) (*SlackBotOptions, error) {
-
-	// Fetch the resource reference for the token
-	if slackBot.Spec.TokenReference.Kind != "Secret" {
-		return nil, fmt.Errorf("expected token of kind Secret but got %s for %s", slackBot.Spec.TokenReference.Kind,
-			slackBot.Name)
-	}
-	secret, err := c.KubeClient.CoreV1().Secrets(c.Namespace).Get(slackBot.Spec.TokenReference.Name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	token, ok := secret.Data["token"]
-	if !ok {
-		return nil, fmt.Errorf("expected key token in field data")
-	}
-	watchNs := c.Namespace
 	if slackBot.Spec.Namespace != "" {
-		watchNs = slackBot.Spec.Namespace
+		o.Namespace = slackBot.Spec.Namespace
+	}
+	o.SlackUserResolver = NewSlackUserResolver(o.SlackClient, o.JXClient, o.Namespace)
+	return nil
+}
+
+func (o *SlackBotOptions) Run() error {
+	defer runtime.HandleCrash()
+
+	channel := "testing-bot"
+
+	slackBot := &slackappapi.SlackBot{
+		Spec: slackappapi.SlackBotSpec{
+			PullRequests: []slackappapi.SlackBotMode{
+				{
+					DirectMessage:   true,
+					NotifyReviewers: false,
+					Channel:         channel,
+					Orgs:            nil,
+					IgnoreLabels:    nil,
+				},
+			},
+			Pipelines: []slackappapi.SlackBotMode{
+				{
+					DirectMessage:   true,
+					NotifyReviewers: false,
+					Channel:         channel,
+					Orgs:            nil,
+					IgnoreLabels:    nil,
+				},
+			},
+			Statuses: slackappapi.Statuses{},
+		},
 	}
 
-	slackClient := c.getSlackClient(string(token))
+	err := o.Validate(slackBot)
+	if err != nil {
+		return errors.Wrapf(err, "failed to validate options")
+	}
 
-	userResolver := NewSlackUserResolver(slackClient, c.JXClient, watchNs)
+	log.Logger().Infof("Watching slackbots in namespace %s\n", o.Namespace)
 
-	return &SlackBotOptions{
-		GlobalClients:     c,
-		Name:              slackBot.Name,
-		SlackClient:       slackClient,
-		Pipelines:         slackBot.Spec.Pipelines,
-		PullRequests:      slackBot.Spec.PullRequests,
-		Namespace:         watchNs,
-		Statuses:          slackBot.Spec.Statuses,
-		Timestamps:        make(map[string]map[string]*MessageReference, 0),
-		SlackUserResolver: &userResolver,
-	}, nil
+	// store the channel so we can update or delete it later if the SlackBot resource gets updated in the cluster
+	//o.botChannels[slackBot.UID] = bot.WatchActivities()
+	o.WatchActivities()
+	return nil
 }

@@ -1,8 +1,8 @@
 package v1alpha1
 
 import (
-	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -33,11 +33,25 @@ type SlackBot struct {
 
 // SlackBotSpec provides details of a Slack Bot
 type SlackBotSpec struct {
-	Namespace      string                      `json:"namespace,omitempty" protobuf:"bytes,1,name=namespace"`
-	TokenReference jenkinsv1.ResourceReference `json:"tokenReference,omitempty" protobuf:"bytes,5,name=tokenReference"`
-	PullRequests   []SlackBotMode              `json:"pullRequests,omitempty" protobuf:"bytes,6,name=pullRequests"`
-	Pipelines      []SlackBotMode              `json:"pipelines,omitempty" protobuf:"bytes,7,name=pipelines"`
-	Statuses       Statuses                    `json:"statuses,omitempty" protobuf:"bytes,2,name=statuses"`
+	Namespace      string            `json:"namespace,omitempty" protobuf:"bytes,1,name=namespace"`
+	TokenReference ResourceReference `json:"tokenReference,omitempty" protobuf:"bytes,5,name=tokenReference"`
+	PullRequests   []SlackBotMode    `json:"pullRequests,omitempty" protobuf:"bytes,6,name=pullRequests"`
+	Pipelines      []SlackBotMode    `json:"pipelines,omitempty" protobuf:"bytes,7,name=pipelines"`
+	Statuses       Statuses          `json:"statuses,omitempty" protobuf:"bytes,2,name=statuses"`
+}
+
+type ResourceReference struct {
+	// API version of the referent.
+	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,5,opt,name=apiVersion"`
+	// Kind of the referent.
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
+	Kind string `json:"kind" protobuf:"bytes,1,opt,name=kind"`
+	// Name of the referent.
+	// More info: http://kubernetes.io/docs/user-guide/identifiers#names
+	Name string `json:"name" protobuf:"bytes,3,opt,name=name"`
+	// UID of the referent.
+	// More info: http://kubernetes.io/docs/user-guide/identifiers#uids
+	UID types.UID `json:"uid,omitempty" protobuf:"bytes,4,opt,name=uid,casttype=k8s.io/apimachinery/pkg/types.UID"`
 }
 
 type SlackBotMode struct {

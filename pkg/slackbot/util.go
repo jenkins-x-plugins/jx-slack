@@ -3,8 +3,7 @@ package slackbot
 import (
 	"strings"
 
-	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
-	jxkube "github.com/jenkins-x/jx/v2/pkg/kube"
+	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 )
 
 type byBuildNumber []jenkinsv1.PipelineActivity
@@ -18,7 +17,7 @@ func (s byBuildNumber) Swap(i, j int) {
 }
 
 func (s byBuildNumber) getBuildNumber(activity jenkinsv1.PipelineActivity) string {
-	details := jxkube.CreatePipelineDetails(&activity)
+	details := CreatePipelineDetails(&activity)
 	return details.Build
 }
 

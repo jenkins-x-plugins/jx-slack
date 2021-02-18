@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	jxcmd "github.com/jenkins-x/jx/v2/pkg/cmd/helper"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/helper"
 	"github.com/spf13/cobra"
 )
 
@@ -21,10 +21,9 @@ func NewCmdRoot() *cobra.Command {
 			options.Cmd = cmd
 			options.Args = args
 			err := options.Run()
-			jxcmd.CheckErr(err)
+			helper.CheckErr(err)
 		},
 	}
-	rootCmd.AddCommand(NewCmdHook())
 	rootCmd.AddCommand(NewCmdRun())
 	return rootCmd
 }

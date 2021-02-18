@@ -6,15 +6,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jenkins-x/jx/v2/pkg/log"
+	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 
 	"github.com/pkg/errors"
 
 	"github.com/slack-go/slack"
 
-	jenkinsv1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
+	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 
-	jenkninsv1client "github.com/jenkins-x/jx/v2/pkg/client/clientset/versioned"
+	jenkninsv1client "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned"
 )
 
 const (
@@ -39,30 +39,34 @@ func NewSlackUserResolver(slackClient *slack.Client, jenkinsClient jenkninsv1cli
 }
 
 // SlackUserLogin returns the login for the slack provider, or an empty string if not found
-func (r *SlackUserResolver) SlackUserLogin(user *jenkinsv1.User) (string, error) {
-	for _, a := range user.Spec.Accounts {
+func (r *SlackUserResolver) SlackUserLogin(user *jenkinsv1.UserDetails) (string, error) {
+	for _, a := range user.Accounts {
 		if a.Provider == r.SlackProviderKey() {
 			return a.ID, nil
 		}
 	}
-	if user.Spec.Email != "" {
+	if user.Email != "" {
 
 		// Attempt to lookup by email and associate
-		email, err := r.getSlackEmailFromMapping(user.Spec.Email, userMappingfile)
+		email, err := r.getSlackEmailFromMapping(user.Email, userMappingfile)
 		if err != nil {
 			// user may have the same email address in both git and slack to try that if no explicit mapping
-			email = user.Spec.Email
+			email = user.Email
 			log.Logger().Warnf("no mapped email address so using git user email %s to find id in slack", email)
 		}
 		slackUser, err := r.SlackClient.GetUserByEmail(email)
 		if err != nil {
 			return "", errors.Wrapf(err, "could not find Slack ID using email %s", email)
 		}
-		user.Spec.Accounts = append(user.Spec.Accounts, jenkinsv1.AccountReference{
+		user.Accounts = append(user.Accounts, jenkinsv1.AccountReference{
 			Provider: r.SlackProviderKey(),
 			ID:       slackUser.ID,
 		})
-		_, err = r.JXClient.JenkinsV1().Users(r.Namespace).Update(user)
+
+		// TODO
+		/*
+			_, err = r.JXClient.JenkinsV1().Users(r.Namespace).Update(user)
+		*/
 		return slackUser.ID, nil
 	}
 	return "", nil
