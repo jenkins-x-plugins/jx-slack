@@ -38,7 +38,7 @@ echo "Generating code to ${OUTDIR}"
 #                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
 #                  instead of the $GOPATH directly. For normal projects this can be dropped.
 ${CODEGEN_PKG}/generate-groups.sh all \
-  github.com/jenkins-x-labs/slack/pkg/client github.com/jenkins-x-labs/slack/pkg/apis \
+  github.com/jenkins-x-plugins/slack/pkg/client github.com/jenkins-x-plugins/slack/pkg/apis \
   slack:v1alpha1 \
   --output-base "${OUTDIR}" \
   --go-header-file ${SCRIPT_ROOT}/hack/custom-boilerplate.go.txt

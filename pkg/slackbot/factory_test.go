@@ -8,8 +8,8 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
-	slackappapi "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
+	slackapp "github.com/jenkins-x-plugins/slack/pkg/apis/slack/v1alpha1"
+	slackappapi "github.com/jenkins-x-plugins/slack/pkg/apis/slack/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -26,11 +26,6 @@ func TestCreateSlackBot(t *testing.T) {
 		},
 	}
 	fakeclient := fake.NewSimpleClientset(secret)
-
-	clients := &GlobalClients{
-		KubeClient:        fakeclient,
-		slackClientHelper: &fakeSlackClient{},
-	}
 
 	tests := []struct {
 		name     string

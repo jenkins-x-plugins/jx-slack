@@ -13,11 +13,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jenkins-x/jx-gitops/pkg/sourceconfigs"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/jenkins-x-plugins/jx-changelog/pkg/users"
 
-	slackapp "github.com/jenkins-x-labs/slack/pkg/apis/slack/v1alpha1"
+	slackapp "github.com/jenkins-x-plugins/slack/pkg/apis/slack/v1alpha1"
 
 	"github.com/pkg/errors"
 
@@ -101,28 +102,7 @@ type MessageReference struct {
 	Timestamp string
 }
 
-func (o *SlackBotOptions) isEnabled(activity *jenkinsv1.PipelineActivity, orgs []slackapp.Org,
-	ignoreLabels []string) (bool, *scm.PullRequest, *users.GitUserResolver, error) {
-	if len(orgs) > 0 {
-		found := false
-		for _, o := range orgs {
-			if o.Name == activity.Spec.GitOwner {
-				if len(o.Repos) == 0 {
-					found = true
-					break
-				}
-				for _, r := range o.Repos {
-					if r == activity.Spec.GitRepository {
-						found = true
-						break
-					}
-				}
-			}
-		}
-		if !found {
-			return false, nil, nil, nil
-		}
-	}
+func (o *SlackBotOptions) isEnabled(activity *jenkinsv1.PipelineActivity, ignoreLabels []string) (bool, *scm.PullRequest, *users.GitUserResolver, error) {
 	var pr *scm.PullRequest
 	var err error
 	var resolver *users.GitUserResolver
@@ -149,52 +129,60 @@ func (o *SlackBotOptions) isEnabled(activity *jenkinsv1.PipelineActivity, orgs [
 }
 
 func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) error {
-
 	if activity.Name == "" {
 		return fmt.Errorf("PipelineActivity name cannot be empty")
 	}
 
-	for _, cfg := range o.Pipelines {
-		if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.Orgs, cfg.IgnoreLabels); err != nil {
-			return errors.WithStack(err)
-		} else if enabled {
-			options, createIfMissing, err := o.createPipelineMessage(activity, pullRequest)
-			if err != nil {
-				return err
-			}
-			if cfg.Channel != "" {
-				channel := channelName(cfg.Channel)
-				err := o.postMessage(channel, false, pipelineMessageType, activity, nil, options, createIfMissing)
-				if err != nil {
-					return errors.Wrap(err, fmt.Sprintf("error posting cfg for %s to channel %s", activity.Name,
-						channel))
-				}
-				log.Logger().Infof("Channel message sent to %s\n", cfg.Channel)
-			}
-			if cfg.DirectMessage {
-				if pullRequest != nil {
-					id, err := o.resolveGitUserToSlackUser(&pullRequest.Author, resolver)
-					if err != nil {
-						return errors.Wrapf(err, "Cannot resolve Slack ID for Git user %s", pullRequest.Author.Name)
-					}
-					if id != "" {
-						err = o.postMessage(id, true, pipelineMessageType, activity, nil, options, createIfMissing)
-						if err != nil {
-							return errors.Wrap(err, fmt.Sprintf("error sending direct pipeline for %s to %s", activity.Name,
-								id))
-						}
-						log.Logger().Infof("Direct message sent to %s\n", pullRequest.Author.Name)
-					}
-				}
-			}
+	ps := &activity.Spec
+	gitServer := ""
+	owner := ps.GitOwner
+	repoName := ps.GitRepository
 
+	repoConfig := sourceconfigs.GetOrCreateRepositoryFor(o.SourceConfigs, gitServer, owner, repoName)
+
+	cfg := repoConfig.Slack
+	if cfg == nil || cfg.Channel == "" || cfg.Disable {
+		return nil
+	}
+	channel := channelName(cfg.Channel)
+
+	if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.IgnorePullLabels); err != nil {
+		return errors.WithStack(err)
+	} else if enabled {
+		options, createIfMissing, err := o.createPipelineMessage(activity, pullRequest)
+		if err != nil {
+			return err
 		}
+		if cfg.Channel != "" {
+			err := o.postMessage(channel, false, pipelineMessageType, activity, nil, options, createIfMissing)
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("error posting cfg for %s to channel %s", activity.Name,
+					channel))
+			}
+			log.Logger().Infof("Channel message sent to %s\n", cfg.Channel)
+		}
+		if !cfg.NoDirectMessage {
+			if pullRequest != nil {
+				id, err := o.resolveGitUserToSlackUser(&pullRequest.Author, resolver)
+				if err != nil {
+					return errors.Wrapf(err, "Cannot resolve Slack ID for Git user %s", pullRequest.Author.Name)
+				}
+				if id != "" {
+					err = o.postMessage(id, true, pipelineMessageType, activity, nil, options, createIfMissing)
+					if err != nil {
+						return errors.Wrap(err, fmt.Sprintf("error sending direct pipeline for %s to %s", activity.Name,
+							id))
+					}
+					log.Logger().Infof("Direct message sent to %s\n", pullRequest.Author.Name)
+				}
+			}
+		}
+
 	}
 	return nil
 }
 
 func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) error {
-
 	if activity.Name == "" {
 		return fmt.Errorf("PipelineActivity name cannot be empty")
 	}
@@ -206,7 +194,7 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 	if prn > 0 {
 		ctx := context.TODO()
 		for _, cfg := range o.PullRequests {
-			if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.Orgs, cfg.IgnoreLabels); err != nil {
+			if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.IgnoreLabels); err != nil {
 				return errors.WithStack(err)
 			} else if enabled {
 				log.Logger().Infof("Preparing review request message for %s\n", activity.Name)

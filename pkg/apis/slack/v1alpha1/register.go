@@ -1,7 +1,7 @@
 package v1alpha1
 
 import (
-	"github.com/jenkins-x-labs/slack/pkg/apis/slack"
+	"github.com/jenkins-x-plugins/slack/pkg/apis/slack"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
