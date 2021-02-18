@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jenkins-x/go-scm/scm"
+	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/giturl"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/stringhelpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -133,15 +134,8 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 		return fmt.Errorf("PipelineActivity name cannot be empty")
 	}
 
-	ps := &activity.Spec
-	gitServer := ""
-	owner := ps.GitOwner
-	repoName := ps.GitRepository
-
-	repoConfig := sourceconfigs.GetOrCreateRepositoryFor(o.SourceConfigs, gitServer, owner, repoName)
-
-	cfg := repoConfig.Slack
-	if cfg == nil || cfg.Channel == "" || cfg.Disable {
+	cfg := o.getSlackConfigForPipeline(activity)
+	if cfg == nil || cfg.Channel == "" || cfg.Disable.ToBool() {
 		return nil
 	}
 	channel := channelName(cfg.Channel)
@@ -154,14 +148,16 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 			return err
 		}
 		if cfg.Channel != "" {
-			err := o.postMessage(channel, false, pipelineMessageType, activity, nil, options, createIfMissing)
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("error posting cfg for %s to channel %s", activity.Name,
-					channel))
+			if o.shouldSendPipelineMessage(activity, cfg) {
+				err := o.postMessage(channel, false, pipelineMessageType, activity, nil, options, createIfMissing)
+				if err != nil {
+					return errors.Wrap(err, fmt.Sprintf("error posting cfg for %s to channel %s", activity.Name,
+						channel))
+				}
+				log.Logger().Infof("Channel message sent to %s\n", cfg.Channel)
 			}
-			log.Logger().Infof("Channel message sent to %s\n", cfg.Channel)
 		}
-		if !cfg.NoDirectMessage {
+		if cfg.DirectMessage.ToBool() {
 			if pullRequest != nil {
 				id, err := o.resolveGitUserToSlackUser(&pullRequest.Author, resolver)
 				if err != nil {
@@ -182,6 +178,16 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 	return nil
 }
 
+func (o *SlackBotOptions) getSlackConfigForPipeline(activity *jenkinsv1.PipelineActivity) *v1alpha1.SlackNotify {
+	ps := &activity.Spec
+	gitServer := ""
+	owner := ps.GitOwner
+	repoName := ps.GitRepository
+
+	repoConfig := sourceconfigs.GetOrCreateRepositoryFor(o.SourceConfigs, gitServer, owner, repoName)
+	return repoConfig.Slack
+}
+
 func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) error {
 	if activity.Name == "" {
 		return fmt.Errorf("PipelineActivity name cannot be empty")
@@ -191,76 +197,80 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 	if err != nil {
 		return errors.Wrapf(err, "getting pull request number %s", activity.Name)
 	}
-	if prn > 0 {
-		ctx := context.TODO()
-		for _, cfg := range o.PullRequests {
-			if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.IgnoreLabels); err != nil {
-				return errors.WithStack(err)
-			} else if enabled {
-				log.Logger().Infof("Preparing review request message for %s\n", activity.Name)
-				oldestActivity, latestActivity, all, err := o.findPipelineActivities(ctx, activity)
-				if err != nil {
-					return err
+	if prn <= 0 {
+		return nil
+	}
+	ctx := context.TODO()
+	cfg := o.getSlackConfigForPipeline(activity)
+	if cfg == nil || cfg.Channel == "" || cfg.Disable.ToBool() {
+		return nil
+	}
+
+	if enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg.IgnorePullLabels); err != nil {
+		return errors.WithStack(err)
+	} else if enabled {
+		log.Logger().Infof("Preparing review request message for %s\n", activity.Name)
+		oldestActivity, latestActivity, all, err := o.findPipelineActivities(ctx, activity)
+		if err != nil {
+			return err
+		}
+		buildNumber, err := strconv.Atoi(CreatePipelineDetails(activity).Build)
+		if err != nil {
+			return err
+		}
+		latestBuildNumber := -1
+		if latestActivity != nil {
+			// TODO Some activities could be missing the labels that identify them properly,
+			// in that case just display what we have?
+			latestBuildNumber, err = strconv.Atoi(CreatePipelineDetails(latestActivity).Build)
+		}
+		if oldestActivity == nil {
+			// TODO Some activities could be missing the labels that identify them so what do we do?
+			// We at least try to not error
+			oldestActivity = activity
+		}
+		if buildNumber >= latestBuildNumber {
+			attachments, reviewers, buildStatus, err := o.createReviewersMessage(activity, cfg.NotifyReviewers.ToBool(),
+				pullRequest, resolver)
+			if err != nil {
+				return err
+			}
+			createIfMissing := true
+			if buildStatus == defaultStatuses.Merged || buildStatus == defaultStatuses.Closed {
+				createIfMissing = false
+			}
+			if attachments != nil {
+				options := []slack.MsgOption{
+					slack.MsgOptionAttachments(attachments...),
 				}
-				buildNumber, err := strconv.Atoi(CreatePipelineDetails(activity).Build)
-				if err != nil {
-					return err
-				}
-				latestBuildNumber := -1
-				if latestActivity != nil {
-					// TODO Some activities could be missing the labels that identify them properly,
-					// in that case just display what we have?
-					latestBuildNumber, err = strconv.Atoi(CreatePipelineDetails(latestActivity).Build)
-				}
-				if oldestActivity == nil {
-					// TODO Some activities could be missing the labels that identify them so what do we do?
-					// We at least try to not error
-					oldestActivity = activity
-				}
-				if buildNumber >= latestBuildNumber {
-					attachments, reviewers, buildStatus, err := o.createReviewersMessage(activity, cfg.NotifyReviewers,
-						pullRequest, resolver)
+				if cfg.Channel != "" {
+					channel := channelName(cfg.Channel)
+					err := o.postMessage(channel, false, pullRequestReviewMessageType, oldestActivity,
+						all, options, createIfMissing)
 					if err != nil {
-						return err
+						return errors.Wrap(err, fmt.Sprintf("error posting PR review request for %s to channel %s",
+							activity.Name,
+							channel))
 					}
-					createIfMissing := true
-					if buildStatus == defaultStatuses.Merged || buildStatus == defaultStatuses.Closed {
-						createIfMissing = false
-					}
-					if attachments != nil {
-						options := []slack.MsgOption{
-							slack.MsgOptionAttachments(attachments...),
-						}
-						if cfg.Channel != "" {
-							channel := channelName(cfg.Channel)
-							err := o.postMessage(channel, false, pullRequestReviewMessageType, oldestActivity,
+				}
+				if cfg.DirectMessage.ToBool() && cfg.NotifyReviewers.ToBool() {
+					for _, user := range reviewers {
+						if user != nil {
+							err = o.postMessage(user.ID, true, pullRequestReviewMessageType, oldestActivity,
 								all, options, createIfMissing)
 							if err != nil {
-								return errors.Wrap(err, fmt.Sprintf("error posting PR review request for %s to channel %s",
+								return errors.Wrap(err, fmt.Sprintf("error sending direct PR review request for %s to %s",
 									activity.Name,
-									channel))
+									user.ID))
 							}
-						}
-						if cfg.DirectMessage && cfg.NotifyReviewers {
-							for _, user := range reviewers {
-								if user != nil {
-									err = o.postMessage(user.ID, true, pullRequestReviewMessageType, oldestActivity,
-										all, options, createIfMissing)
-									if err != nil {
-										return errors.Wrap(err, fmt.Sprintf("error sending direct PR review request for %s to %s",
-											activity.Name,
-											user.ID))
-									}
-								}
-							}
-
 						}
 					}
-				} else {
-					log.Logger().Infof("Skipping %v as it is older than latest build number %d\n", activity.Name,
-						latestBuildNumber)
+
 				}
 			}
+		} else {
+			log.Logger().Infof("Skipping %v as it is older than latest build number %d\n", activity.Name,
+				latestBuildNumber)
 		}
 	}
 	return nil

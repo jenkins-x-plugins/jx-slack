@@ -1,9 +1,10 @@
 package slackbot
 
 import (
-	slackappapi "github.com/jenkins-x-plugins/slack/pkg/apis/slack/v1alpha1"
+	slackapp "github.com/jenkins-x-plugins/slack/pkg/apis/slack/v1alpha1"
 	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/go-scm/scm/factory"
+	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/jenkins-x/jx-gitops/pkg/sourceconfigs"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cmdrunner"
@@ -18,13 +19,7 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	slackapp "github.com/jenkins-x-plugins/slack/pkg/apis/slack/v1alpha1"
 	jenkinsv1client "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned"
-)
-
-const (
-	DefaultHmacSecretName = "hmac-token"
-	DefaultPort           = 8080
 )
 
 type SlackOptions struct {
@@ -44,26 +39,15 @@ type SlackBotOptions struct {
 	SlackClient       *slack.Client
 	ScmClient         *scm.Client
 	SourceConfigs     *v1alpha1.SourceConfig
-	Pipelines         []slackapp.SlackBotMode
-	PullRequests      []slackapp.SlackBotMode
 	Statuses          slackapp.Statuses
 	Timestamps        map[string]map[string]*MessageReference
 	SlackUserResolver SlackUserResolver
 	GitClient         gitclient.Interface
 	CommandRunner     cmdrunner.CommandRunner
-
-	HmacSecretName string
-	Port           int
-}
-
-type SlackBots struct {
-	HmacSecretName string
-	Items          []*SlackBotOptions
-	Port           int
 }
 
 // Validate configures the clients for the slack bot
-func (o *SlackBotOptions) Validate(slackBot *slackapp.SlackBot) error {
+func (o *SlackBotOptions) Validate() error {
 	if o.SlackClient == nil {
 		if o.SlackToken == "" {
 			return errors.Errorf("no $SLACK_TOKEN defined")
@@ -75,12 +59,6 @@ func (o *SlackBotOptions) Validate(slackBot *slackapp.SlackBot) error {
 			o.SlackClient = slack.New(o.SlackToken)
 		}
 	}
-	if o.Name == "" {
-		o.Name = slackBot.Name
-	}
-	o.Pipelines = slackBot.Spec.Pipelines
-	o.PullRequests = slackBot.Spec.PullRequests
-	o.Statuses = slackBot.Spec.Statuses
 
 	var err error
 	o.KubeClient, o.Namespace, err = kube.LazyCreateKubeClientAndNamespace(o.KubeClient, o.Namespace)
@@ -98,9 +76,6 @@ func (o *SlackBotOptions) Validate(slackBot *slackapp.SlackBot) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to create SCM client")
 		}
-	}
-	if slackBot.Spec.Namespace != "" {
-		o.Namespace = slackBot.Spec.Namespace
 	}
 	o.SlackUserResolver = NewSlackUserResolver(o.SlackClient, o.JXClient, o.Namespace)
 
@@ -127,41 +102,36 @@ func (o *SlackBotOptions) Validate(slackBot *slackapp.SlackBot) error {
 func (o *SlackBotOptions) Run() error {
 	defer runtime.HandleCrash()
 
-	channel := "testing-bot"
-
-	slackBot := &slackappapi.SlackBot{
-		Spec: slackappapi.SlackBotSpec{
-			PullRequests: []slackappapi.SlackBotMode{
-				{
-					DirectMessage:   true,
-					NotifyReviewers: false,
-					Channel:         channel,
-					Orgs:            nil,
-					IgnoreLabels:    nil,
-				},
-			},
-			Pipelines: []slackappapi.SlackBotMode{
-				{
-					DirectMessage:   true,
-					NotifyReviewers: false,
-					Channel:         channel,
-					Orgs:            nil,
-					IgnoreLabels:    nil,
-				},
-			},
-			Statuses: slackappapi.Statuses{},
-		},
-	}
-
-	err := o.Validate(slackBot)
+	err := o.Validate()
 	if err != nil {
 		return errors.Wrapf(err, "failed to validate options")
 	}
 
 	log.Logger().Infof("Watching slackbots in namespace %s\n", o.Namespace)
 
-	// store the channel so we can update or delete it later if the SlackBot resource gets updated in the cluster
-	//o.botChannels[slackBot.UID] = bot.WatchActivities()
 	o.WatchActivities()
 	return nil
+}
+
+func (o *SlackBotOptions) shouldSendPipelineMessage(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify) bool {
+	failed := activity.Spec.Status == jenkinsv1.ActivityStatusTypeError || activity.Spec.Status == jenkinsv1.ActivityStatusTypeFailed
+	succeeded := activity.Spec.Status == jenkinsv1.ActivityStatusTypeSucceeded
+	switch cfg.Kind {
+	case v1alpha1.NotifyKindNone:
+		return false
+	case v1alpha1.NotifyKindAlways:
+		return true
+	case v1alpha1.NotifyKindFailure:
+		return failed
+	case v1alpha1.NotifyKindFailureOrFirstSuccess:
+		if succeeded {
+			// TODO lets find if the last status we logged was a fail...
+		}
+		return failed
+	case v1alpha1.NotifyKindSuccess:
+		return succeeded
+	default:
+		log.Logger().Warnf("invalid notify kind %s", string(cfg.Kind))
+		return false
+	}
 }
