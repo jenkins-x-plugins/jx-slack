@@ -3,14 +3,13 @@ package slackbot
 import (
 	"bufio"
 	"fmt"
+	"github.com/jenkins-x-plugins/slack/pkg/slacker"
 	"os"
 	"strings"
 
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 
 	"github.com/pkg/errors"
-
-	"github.com/slack-go/slack"
 
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 
@@ -23,14 +22,14 @@ const (
 
 // SlackUserResolver allows slack users to be converted to Jenkins X users
 type SlackUserResolver struct {
-	SlackClient  *slack.Client
+	SlackClient  slacker.Interface
 	JXClient     jenkninsv1client.Interface
 	Namespace    string
 	UserMappings map[string]string
 }
 
 // NewSlackUserResolver creates a new struct to work with resolving slack user details
-func NewSlackUserResolver(slackClient *slack.Client, jenkinsClient jenkninsv1client.Interface, namespace string) SlackUserResolver {
+func NewSlackUserResolver(slackClient slacker.Interface, jenkinsClient jenkninsv1client.Interface, namespace string) SlackUserResolver {
 	return SlackUserResolver{
 		SlackClient: slackClient,
 		JXClient:    jenkinsClient,

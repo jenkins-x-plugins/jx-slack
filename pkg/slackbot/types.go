@@ -1,12 +1,12 @@
 package slackbot
 
 import (
+	"github.com/jenkins-x-plugins/slack/pkg/slacker"
 	"github.com/jenkins-x/go-scm/scm"
 	jenkinsv1client "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned"
 	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cmdrunner"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient"
-	"github.com/slack-go/slack"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -24,7 +24,7 @@ type SlackBotOptions struct {
 	SlackOptions
 	KubeClient        kubernetes.Interface
 	JXClient          jenkinsv1client.Interface
-	SlackClient       *slack.Client
+	SlackClient       slacker.Interface
 	ScmClient         *scm.Client
 	SourceConfigs     *v1alpha1.SourceConfig
 	Statuses          Statuses

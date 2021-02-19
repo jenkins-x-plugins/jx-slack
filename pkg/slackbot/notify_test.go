@@ -2,15 +2,14 @@ package slackbot_test
 
 import (
 	"github.com/jenkins-x-plugins/slack/pkg/slackbot"
+	"github.com/jenkins-x-plugins/slack/pkg/testpipelines"
 	"github.com/jenkins-x/go-scm/scm"
 	fakescm "github.com/jenkins-x/go-scm/scm/driver/fake"
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 	fakejx "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned/fake"
 	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
-	"github.com/jenkins-x/jx-helpers/v3/pkg/kube/naming"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
@@ -175,10 +174,10 @@ func TestNotifyPipeline(t *testing.T) {
 	repo := "myrepo"
 
 	activities := []*jenkinsv1.PipelineActivity{
-		CreateTestPipelineActivity(ns, owner, repo, "main", "", "1", jenkinsv1.ActivityStatusTypeFailed),
-		CreateTestPipelineActivity(ns, owner, repo, "main", "", "2", jenkinsv1.ActivityStatusTypeRunning),
-		CreateTestPipelineActivity(ns, owner, repo, "PR-1234", "mycontext", "1", jenkinsv1.ActivityStatusTypeFailed),
-		CreateTestPipelineActivity(ns, owner, repo, "PR-4567", "mycontext", "1", jenkinsv1.ActivityStatusTypeSucceeded),
+		testpipelines.CreateTestPipelineActivity(ns, owner, repo, "main", "", "1", jenkinsv1.ActivityStatusTypeFailed),
+		testpipelines.CreateTestPipelineActivity(ns, owner, repo, "main", "", "2", jenkinsv1.ActivityStatusTypeRunning),
+		testpipelines.CreateTestPipelineActivity(ns, owner, repo, "PR-1234", "mycontext", "1", jenkinsv1.ActivityStatusTypeFailed),
+		testpipelines.CreateTestPipelineActivity(ns, owner, repo, "PR-4567", "mycontext", "1", jenkinsv1.ActivityStatusTypeSucceeded),
 	}
 
 	var jxObjects []runtime.Object
@@ -227,33 +226,5 @@ func TestNotifyPipeline(t *testing.T) {
 		}
 
 		assert.Equal(t, tc.expected, matched, "matched pipeline names for test: %s", name)
-	}
-}
-
-// CreateTestPipelineActivity creates a PipelineActivity with the given arguments
-func CreateTestPipelineActivity(ns, owner, repo, branch, context, build string, status jenkinsv1.ActivityStatusType) *jenkinsv1.PipelineActivity {
-	name := owner + "-" + repo + "-" + branch
-	if context != "" {
-		name += "-" + context
-	}
-	name += "-" + build
-	name = naming.ToValidName(name)
-	gitURL := "https://fake.git/" + owner + "/" + repo + ".git"
-
-	return &jenkinsv1.PipelineActivity{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: ns,
-		},
-		Spec: jenkinsv1.PipelineActivitySpec{
-			Build:         build,
-			Status:        status,
-			GitURL:        gitURL,
-			GitRepository: repo,
-			GitOwner:      owner,
-			GitBranch:     branch,
-			Context:       context,
-			Pipeline:      owner + "/" + name + "/" + branch,
-		},
 	}
 }

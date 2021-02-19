@@ -50,7 +50,7 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 		return err
 	}
 	if cfg.Channel != "" {
-		err := o.postMessage(channel, false, pipelineMessageType, activity, nil, options, createIfMissing)
+		err = o.postMessage(channel, false, pipelineMessageType, activity, nil, options, createIfMissing)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("error posting cfg for %s to channel %s", activity.Name,
 				channel))
@@ -365,7 +365,10 @@ func getLastUpdatedTime(pr *scm.PullRequest, activity *jenkinsv1.PipelineActivit
 	updatedEpochTime := int64(-1)
 	if pr != nil {
 		updatedEpochTime = pr.Updated.Unix()
+	} else {
+		updatedEpochTime = activity.CreationTimestamp.Unix()
 	}
+
 	// Check if there is a started or completion timestamp that is more recent
 	if activity != nil && activity.Spec.StartedTimestamp != nil {
 		if start := activity.Spec.StartedTimestamp.Unix(); start > updatedEpochTime {

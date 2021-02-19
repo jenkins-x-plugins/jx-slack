@@ -81,7 +81,6 @@ func (o *SlackBotOptions) WatchActivities() chan struct{} {
 }
 
 func (o *SlackBotOptions) onObj(obj interface{}) {
-
 	activity, ok := obj.(*jenkinsv1.PipelineActivity)
 	if !ok {
 		log.Logger().Infof("Object is not a PipelineActivity %#v\n", obj)

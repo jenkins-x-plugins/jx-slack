@@ -1,7 +1,14 @@
 package slackbot
 
 import (
+	"github.com/jenkins-x-plugins/slack/pkg/slacker/fakeslack"
+	"github.com/jenkins-x-plugins/slack/pkg/testpipelines"
+	fakescm "github.com/jenkins-x/go-scm/scm/driver/fake"
+	fakejx "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned/fake"
+	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
+	"k8s.io/client-go/kubernetes/fake"
 	"path"
 	"testing"
 
@@ -17,8 +24,94 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSlackBotOptions_createAttachments(t *testing.T) {
+func TestPipelineMessages(t *testing.T) {
+	ns := "jx"
+	owner := "myorg"
+	repo := "myrepo"
+	branch := "main"
+	channel := v1alpha1.DefaultSlackChannel
 
+	testCases := []struct {
+		name     string
+		kind     v1alpha1.NotifyKind
+		expected []int
+	}{
+		{
+			name:     "fail-or-success",
+			kind:     v1alpha1.NotifyKindFailureOrFirstSuccess,
+			expected: []int{1, 1},
+		},
+		{
+			name:     "failure",
+			kind:     v1alpha1.NotifyKindFailure,
+			expected: []int{1, 0},
+		},
+	}
+
+	for _, tc := range testCases {
+		name := tc.name
+		t.Logf("running test %s with kind %s\n", name, string(tc.kind))
+
+		scmClient, _ := fakescm.NewDefault()
+		slackClient := fakeslack.NewFakeSlack()
+
+		sourceConfig := &v1alpha1.SourceConfig{
+			Spec: v1alpha1.SourceConfigSpec{
+				Groups: []v1alpha1.RepositoryGroup{
+					{
+						Provider: "https://fake.git",
+						Owner:    owner,
+						Repositories: []v1alpha1.Repository{
+							{
+								Name: repo,
+								Slack: &v1alpha1.SlackNotify{
+									Channel:  v1alpha1.DefaultSlackChannel,
+									Kind:     tc.kind,
+									Pipeline: v1alpha1.PipelineKindAll,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		pa1 := testpipelines.CreateTestPipelineActivity(ns, owner, repo, branch, "", "1", jenkinsv1.ActivityStatusTypeFailed)
+		pa2 := testpipelines.CreateTestPipelineActivity(ns, owner, repo, branch, "", "2", jenkinsv1.ActivityStatusTypeSucceeded)
+
+		jxClient := fakejx.NewSimpleClientset(pa1, pa2)
+
+		o := &SlackBotOptions{
+			KubeClient:    fake.NewSimpleClientset(),
+			JXClient:      jxClient,
+			ScmClient:     scmClient,
+			SlackClient:   slackClient,
+			SourceConfigs: sourceConfig,
+		}
+		o.Namespace = ns
+
+		err := o.PipelineMessage(pa1)
+		require.NoError(t, err, "failed to process pipeline %s for test %s", pa1.Name, name)
+
+		expectedCount := 0
+		if len(tc.expected) > 0 {
+			expectedCount = tc.expected[0]
+		}
+		slackClient.AssertMessageCount(t, channel, expectedCount, "for activity "+pa1.Name+" for test "+name)
+		slackClient.Messages = nil
+
+		err = o.PipelineMessage(pa2)
+		require.NoError(t, err, "failed to process pipeline %s for test %s", pa2.Name)
+
+		expectedCount = 0
+		if len(tc.expected) > 1 {
+			expectedCount = tc.expected[1]
+		}
+		slackClient.AssertMessageCount(t, channel, expectedCount, "for activity "+pa2.Name+" for test "+name)
+	}
+}
+
+func TestSlackBotOptions_createAttachments(t *testing.T) {
 	o := &SlackBotOptions{}
 	type fields struct {
 		filename string
@@ -71,7 +164,7 @@ func getPipelineActivity(filename string) (*jenkinsv1.PipelineActivity, error) {
 	return act, nil
 }
 
-func Test_isUserPipelineStep(t *testing.T) {
+func TestIsUserPipelineStep(t *testing.T) {
 	type args struct {
 		name string
 	}
