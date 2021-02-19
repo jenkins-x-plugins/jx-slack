@@ -6,14 +6,57 @@ import (
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 	informers "github.com/jenkins-x/jx-api/v4/pkg/client/informers/externalversions"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
+	"strconv"
+	"strings"
 )
 
 func (c *SlackBotOptions) getPipelineActivities(ctx context.Context, org string, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
 	return c.JXClient.JenkinsV1().PipelineActivities(c.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("owner=%s, branch=PR-%d, repository=%s", org, prn, repo),
 	})
+}
+
+func (o *SlackBotOptions) previousPipelineFailed(activity *jenkinsv1.PipelineActivity) (bool, error) {
+	build := activity.Spec.Build
+	if build == "" || build == "1" {
+		return false, nil
+	}
+	buildNumber, err := strconv.Atoi(build)
+	if err != nil {
+		return false, nil
+	}
+	if buildNumber <= 1 {
+		return false, nil
+	}
+
+	// lets use the previous build number
+	name := activity.Name
+	idx := strings.LastIndex(name, "-")
+	if idx <= 0 {
+		return false, nil
+	}
+	previousName := name[0:idx] + "-" + strconv.Itoa(buildNumber-1)
+
+	ctx := context.TODO()
+	previous, err := o.JXClient.JenkinsV1().PipelineActivities(o.Namespace).Get(ctx, previousName, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "failed to find PipelineActivity %s in namespace %s", previousName, o.Namespace)
+	}
+	if previous == nil {
+		return false, nil
+	}
+	if previous.Spec.Status == jenkinsv1.ActivityStatusTypeFailed || previous.Spec.Status == jenkinsv1.ActivityStatusTypeError {
+		// TODO should we record the previous message so we can update it?
+		return true, nil
+	}
+	return false, nil
 }
 
 // WatchActivities watches for pipeline activities

@@ -2,7 +2,6 @@ package slackbot
 
 import (
 	"github.com/jenkins-x/go-scm/scm/factory"
-	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx-gitops/pkg/sourceconfigs"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/cli"
@@ -79,10 +78,4 @@ func (o *SlackBotOptions) Run() error {
 
 	o.WatchActivities()
 	return nil
-}
-
-func (o *SlackBotOptions) previousPipelineFailed(activity *jenkinsv1.PipelineActivity) (bool, error) {
-	// TODO...
-	return false, nil
-
 }
