@@ -101,12 +101,12 @@ type MessageReference struct {
 	Timestamp string
 }
 
-func (o *SlackBotOptions) isEnabled(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify) (bool, *scm.PullRequest, *users.GitUserResolver, error) {
+// NotifyPipeline returns true if the given pipeline activity matches the configuration
+func (o *SlackBotOptions) NotifyPipeline(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify) (bool, *scm.PullRequest, *users.GitUserResolver, error) {
 	enabled := o.shouldSendPipelineMessage(activity, cfg)
 	if !enabled {
 		return false, nil, nil, nil
 	}
-	ignoreLabels := cfg.IgnorePullLabels
 	var pr *scm.PullRequest
 	var err error
 	var resolver *users.GitUserResolver
@@ -114,20 +114,17 @@ func (o *SlackBotOptions) isEnabled(activity *jenkinsv1.PipelineActivity, cfg *v
 	if err != nil {
 		return false, nil, nil, errors.WithStack(err)
 	}
-	if len(ignoreLabels) > 0 {
+	if pr == nil {
+		return false, nil, nil, nil
+	}
 
-		found := make([]string, 0)
-		for _, l := range ignoreLabels {
-			for _, v := range pr.Labels {
-				if v.Name == l {
-					found = append(found, v.Name)
-				}
-			}
-		}
-		if len(found) > 0 {
-			log.Logger().Infof("Ignoring %s because it has labels %s\n", activity.Name, found)
-			return false, nil, nil, nil
-		}
+	var labels []string
+	for _, v := range pr.Labels {
+		labels = append(labels, v.Name)
+	}
+	if !cfg.PullRequestLabel.MatchesLabels(labels) {
+		log.Logger().Infof("Ignoring %s because it has labels %s\n", activity.Name, strings.Join(labels, ", "))
+		return false, nil, nil, nil
 	}
 	return true, pr, resolver, nil
 }
@@ -170,7 +167,7 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 		return nil
 	}
 	channel := channelName(cfg.Channel)
-	enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg)
+	enabled, pullRequest, resolver, err := o.NotifyPipeline(activity, cfg)
 	if err != nil {
 		return errors.Wrapf(errors.WithStack(err), "failed to verify if message should be sent")
 	}
@@ -237,7 +234,7 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 		return nil
 	}
 
-	enabled, pullRequest, resolver, err := o.isEnabled(activity, cfg)
+	enabled, pullRequest, resolver, err := o.NotifyPipeline(activity, cfg)
 	if err != nil {
 		return errors.WithStack(err)
 	}
