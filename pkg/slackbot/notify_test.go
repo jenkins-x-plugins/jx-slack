@@ -2,10 +2,12 @@ package slackbot_test
 
 import (
 	"github.com/jenkins-x-plugins/slack/pkg/slackbot"
+	"github.com/jenkins-x/go-scm/scm"
 	fakescm "github.com/jenkins-x/go-scm/scm/driver/fake"
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 	fakejx "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned/fake"
 	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/kube/naming"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +28,7 @@ func TestNotifyPipeline(t *testing.T) {
 			cfg: v1alpha1.SlackNotify{
 				Kind: v1alpha1.NotifyKindAlways,
 			},
-			expected: []string{"release-running-1", "pr-failed-1"},
+			expected: []string{"myorg-myrepo-main-1", "myorg-myrepo-main-2", "myorg-myrepo-pr-1234-mycontext-1", "myorg-myrepo-pr-4567-mycontext-1"},
 		},
 		{
 			name: "matchesReleases",
@@ -34,33 +36,149 @@ func TestNotifyPipeline(t *testing.T) {
 				Kind:     v1alpha1.NotifyKindFailureOrFirstSuccess,
 				Pipeline: v1alpha1.PipelineKindRelease,
 			},
+			expected: []string{"myorg-myrepo-main-1"},
+		},
+		{
+			name: "release-with-branch",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindRelease,
+				Branch: &v1alpha1.Pattern{
+					Name: "main",
+				},
+			},
+			expected: []string{"myorg-myrepo-main-1"},
+		},
+		{
+			name: "release-with-branch-include",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindRelease,
+				Branch: &v1alpha1.Pattern{
+					Includes: []string{"main"},
+				},
+			},
+			expected: []string{"myorg-myrepo-main-1"},
+		},
+		{
+			name: "release-with-branch-exclude-not-exist",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindRelease,
+				Branch: &v1alpha1.Pattern{
+					Excludes: []string{"does-not-exist"},
+				},
+			},
+			expected: []string{"myorg-myrepo-main-1"},
+		},
+		{
+			name: "release-with-branch-exclude",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindRelease,
+				Branch: &v1alpha1.Pattern{
+					Excludes: []string{"main"},
+				},
+			},
+		},
+		{
+			name: "release-with-branch-missing-include",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindRelease,
+				Branch: &v1alpha1.Pattern{
+					Includes: []string{"PR-"},
+				},
+			},
+		},
+		{
+			name: "pr-with-context-name",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindPullRequest,
+				Context: &v1alpha1.Pattern{
+					Name: "mycontext",
+				},
+			},
+			expected: []string{"myorg-myrepo-pr-1234-mycontext-1"},
+		},
+		{
+			name: "pr-with-context-include",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindPullRequest,
+				Context: &v1alpha1.Pattern{
+					Includes: []string{"mycontext"},
+				},
+			},
+			expected: []string{"myorg-myrepo-pr-1234-mycontext-1"},
+		},
+		{
+			name: "pr-with-context-exclude",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindPullRequest,
+				Context: &v1alpha1.Pattern{
+					Excludes: []string{"mycontext"},
+				},
+			},
+		},
+		{
+			name: "pr-with-label-name",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindPullRequest,
+				PullRequestLabel: &v1alpha1.Pattern{
+					Name:     "dependencies",
+					Includes: nil,
+					Excludes: nil,
+				},
+			},
+			expected: []string{"myorg-myrepo-pr-1234-mycontext-1"},
+		},
+		{
+			name: "pr-with-label-includes",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindPullRequest,
+				PullRequestLabel: &v1alpha1.Pattern{
+					Includes: []string{"dependencies"},
+					Excludes: []string{"does-not-exist"},
+				},
+			},
+			expected: []string{"myorg-myrepo-pr-1234-mycontext-1"},
+		},
+		{
+			name: "pr-with-label-excludes",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindPullRequest,
+				PullRequestLabel: &v1alpha1.Pattern{
+					Excludes: []string{"dependencies"},
+				},
+			},
+		},
+		{
+			name: "pr-with-label-includes-no-match",
+			cfg: v1alpha1.SlackNotify{
+				Kind:     v1alpha1.NotifyKindFailure,
+				Pipeline: v1alpha1.PipelineKindPullRequest,
+				PullRequestLabel: &v1alpha1.Pattern{
+					Includes: []string{"does-not-exist"},
+				},
+			},
 		},
 	}
 
 	ns := "jx"
+	owner := "myorg"
+	repo := "myrepo"
+
 	activities := []*jenkinsv1.PipelineActivity{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "release-running-1",
-				Namespace: ns,
-			},
-			Spec: jenkinsv1.PipelineActivitySpec{
-				Build:     "1",
-				Status:    jenkinsv1.ActivityStatusTypeRunning,
-				GitBranch: "main",
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "pr-failed-1",
-				Namespace: ns,
-			},
-			Spec: jenkinsv1.PipelineActivitySpec{
-				Build:     "1",
-				Status:    jenkinsv1.ActivityStatusTypeFailed,
-				GitBranch: "PR-1234",
-			},
-		},
+		CreateTestPipelineActivity(ns, owner, repo, "main", "", "1", jenkinsv1.ActivityStatusTypeFailed),
+		CreateTestPipelineActivity(ns, owner, repo, "main", "", "2", jenkinsv1.ActivityStatusTypeRunning),
+		CreateTestPipelineActivity(ns, owner, repo, "PR-1234", "mycontext", "1", jenkinsv1.ActivityStatusTypeFailed),
+		CreateTestPipelineActivity(ns, owner, repo, "PR-4567", "mycontext", "1", jenkinsv1.ActivityStatusTypeSucceeded),
 	}
 
 	var jxObjects []runtime.Object
@@ -68,7 +186,25 @@ func TestNotifyPipeline(t *testing.T) {
 		jxObjects = append(jxObjects, pa)
 	}
 	jxClient := fakejx.NewSimpleClientset(jxObjects...)
-	scmClient, _ := fakescm.NewDefault()
+	scmClient, scmData := fakescm.NewDefault()
+
+	for _, prNumber := range []int{1234, 4567} {
+		var labels []*scm.Label
+		if prNumber == 1234 {
+			labels = append(labels, &scm.Label{
+				Name: "mylabel",
+			}, &scm.Label{
+				Name: "dependencies",
+			})
+		}
+		scmData.PullRequests[prNumber] = &scm.PullRequest{
+			Number: prNumber,
+			Title:  "my awesome pull request",
+			Body:   "some text",
+			Source: "my-branch",
+			Labels: labels,
+		}
+	}
 
 	for _, tc := range testCases {
 		name := tc.name
@@ -91,5 +227,33 @@ func TestNotifyPipeline(t *testing.T) {
 		}
 
 		assert.Equal(t, tc.expected, matched, "matched pipeline names for test: %s", name)
+	}
+}
+
+// CreateTestPipelineActivity creates a PipelineActivity with the given arguments
+func CreateTestPipelineActivity(ns, owner, repo, branch, context, build string, status jenkinsv1.ActivityStatusType) *jenkinsv1.PipelineActivity {
+	name := owner + "-" + repo + "-" + branch
+	if context != "" {
+		name += "-" + context
+	}
+	name += "-" + build
+	name = naming.ToValidName(name)
+	gitURL := "https://fake.git/" + owner + "/" + repo + ".git"
+
+	return &jenkinsv1.PipelineActivity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Spec: jenkinsv1.PipelineActivitySpec{
+			Build:         build,
+			Status:        status,
+			GitURL:        gitURL,
+			GitRepository: repo,
+			GitOwner:      owner,
+			GitBranch:     branch,
+			Context:       context,
+			Pipeline:      owner + "/" + name + "/" + branch,
+		},
 	}
 }

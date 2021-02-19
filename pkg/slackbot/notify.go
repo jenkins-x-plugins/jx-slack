@@ -20,7 +20,7 @@ func (o *SlackBotOptions) NotifyPipeline(activity *jenkinsv1.PipelineActivity, c
 		return false, nil, nil, nil
 	}
 
-	prn, err := getPullRequestNumber(activity)
+	prn, details, err := getPullRequestNumber(activity)
 	if err != nil {
 		log.Logger().Warnf("failed to get PullRequest number for activity %s", activity.Name)
 	}
@@ -28,6 +28,15 @@ func (o *SlackBotOptions) NotifyPipeline(activity *jenkinsv1.PipelineActivity, c
 	if !o.matchesPipeline(activity, cfg, prn) {
 		return false, nil, nil, nil
 	}
+	if !cfg.Branch.Matches(details.BranchName) {
+		log.Logger().Infof("Ignoring %s because it has a different branch: %s\n", activity.Name, details.BranchName)
+		return false, nil, nil, nil
+	}
+	if !cfg.Context.Matches(details.Context) {
+		log.Logger().Infof("Ignoring %s because it has a different context: %s\n", activity.Name, details.Context)
+		return false, nil, nil, nil
+	}
+
 	if prn <= 0 {
 		return true, nil, nil, nil
 	}
@@ -57,31 +66,12 @@ func (o *SlackBotOptions) matchesPipeline(activity *jenkinsv1.PipelineActivity, 
 	switch cfg.Pipeline {
 	case v1alpha1.PipelineKindAll:
 		return true
-	}
-	failed := activity.Spec.Status == jenkinsv1.ActivityStatusTypeError || activity.Spec.Status == jenkinsv1.ActivityStatusTypeFailed
-	succeeded := activity.Spec.Status == jenkinsv1.ActivityStatusTypeSucceeded
-	switch cfg.Kind {
-	case v1alpha1.NotifyKindNone, v1alpha1.NotifyKindNever:
-		return false
-	case v1alpha1.NotifyKindAlways:
-		return true
-	case v1alpha1.NotifyKindFailure:
-		return failed
-	case v1alpha1.NotifyKindFailureOrFirstSuccess:
-		if succeeded {
-			// TODO lets find if the last status we logged was a fail...
-			flag, err := o.previousPipelineFailed(activity)
-			if err != nil {
-				log.Logger().Warnf("failed to find if previous pipeline of %s was failed: %s", activity.Name, err.Error())
-				return false
-			}
-			return flag
-		}
-		return failed
-	case v1alpha1.NotifyKindSuccess:
-		return succeeded
+	case v1alpha1.PipelineKindRelease:
+		return prn <= 0
+	case v1alpha1.PipelineKindPullRequest:
+		return prn > 0
 	default:
-		log.Logger().Warnf("invalid notify kind %s", string(cfg.Kind))
+		log.Logger().Infof("unknown pipeline kind %s for activity %s", string(cfg.Pipeline), activity.Name)
 		return false
 	}
 }

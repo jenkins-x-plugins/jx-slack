@@ -7,6 +7,7 @@ import (
 	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/giturl"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/scmhelpers"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/stringhelpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sort"
@@ -90,7 +91,7 @@ func (o *SlackBotOptions) ReviewRequestMessage(activity *jenkinsv1.PipelineActiv
 		return fmt.Errorf("PipelineActivity name cannot be empty")
 	}
 
-	prn, err := getPullRequestNumber(activity)
+	prn, _, err := getPullRequestNumber(activity)
 	if err != nil {
 		return errors.Wrapf(err, "getting pull request number %s", activity.Name)
 	}
@@ -203,7 +204,7 @@ func (o *SlackBotOptions) findPipelineActivities(ctx context.Context, activity *
 	// This is the trigger activity. Working out the correct slack message is a bit tricky,
 	// as we have a 1:n mapping between PRs and PipelineActivities (which store the message info).
 	// The algorithm in use just picks the earliest pipeline activity as determined by build number
-	prn, err := getPullRequestNumber(activity)
+	prn, _, err := getPullRequestNumber(activity)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -399,7 +400,7 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 		return nil, false, errors.Wrapf(err, "getting pipeline name for %s", activity.Name)
 	}
 	messageText := icon + pipelineName + " " + repositoryName(activity)
-	if prn, err := getPullRequestNumber(activity); err != nil {
+	if prn, _, err := getPullRequestNumber(activity); err != nil {
 		return nil, false, err
 	} else if prn > 0 {
 		messageText = fmt.Sprintf("%s%s", messageText, link(pullRequestName(pr.Link), pr.Link))
@@ -495,12 +496,13 @@ func (o *SlackBotOptions) getSlackUserID(gitUser *scm.User, resolver *users.GitU
 }
 
 // getPullRequestNumber extracts the pull request number from the activity or returns 0 if it's not a pull request
-func getPullRequestNumber(activity *jenkinsv1.PipelineActivity) (int, error) {
+func getPullRequestNumber(activity *jenkinsv1.PipelineActivity) (int, *PipelineDetails, error) {
 	pipelineDetails := CreatePipelineDetails(activity)
 	if strings.HasPrefix(strings.ToLower(pipelineDetails.BranchName), "pr-") {
-		return strconv.Atoi(strings.TrimPrefix(strings.ToLower(pipelineDetails.BranchName), "pr-"))
+		prn, err := strconv.Atoi(strings.TrimPrefix(strings.ToLower(pipelineDetails.BranchName), "pr-"))
+		return prn, pipelineDetails, err
 	}
-	return 0, nil
+	return 0, pipelineDetails, nil
 }
 
 func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messageType string,
@@ -599,6 +601,9 @@ func (o *SlackBotOptions) getPullRequest(ctx context.Context, activity *jenkinsv
 	}
 	fullName := scm.Join(gitInfo.Organisation, gitInfo.Name)
 	pr, _, err = o.ScmClient.PullRequests.Find(ctx, fullName, prn)
+	if scmhelpers.IsScmNotFound(err) {
+		return pr, resolver, nil
+	}
 	return pr, resolver, err
 }
 
@@ -780,7 +785,7 @@ func pipelineName(activity *jenkinsv1.PipelineActivity) (string, error) {
 	if strings.HasSuffix(name, "/master") {
 		return "Release Pipeline", nil
 	}
-	prn, err := getPullRequestNumber(activity)
+	prn, _, err := getPullRequestNumber(activity)
 	if err != nil {
 		return "", errors.Wrapf(err, "getting pull request number from %s", activity.Name)
 	}
@@ -816,7 +821,7 @@ func CreatePipelineDetails(activity *jenkinsv1.PipelineActivity) *PipelineDetail
 	repoOwner := spec.GitOwner
 	repoName := spec.GitRepository
 	buildNumber := spec.Build
-	branchName := ""
+	branchName := spec.GitBranch
 	context := spec.Context
 	pipeline := spec.Pipeline
 	if pipeline != "" {
@@ -828,7 +833,9 @@ func CreatePipelineDetails(activity *jenkinsv1.PipelineActivity) *PipelineDetail
 			if repoName == "" {
 				repoName = paths[1]
 			}
-			branchName = paths[2]
+			if branchName == "" {
+				branchName = paths[2]
+			}
 		}
 	}
 	if branchName == "" {
