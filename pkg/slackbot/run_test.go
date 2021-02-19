@@ -2,11 +2,6 @@ package slackbot
 
 import (
 	"testing"
-
-	"github.com/slack-go/slack"
-
-	slackappapi "github.com/jenkins-x-plugins/slack/pkg/apis/slack/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestCreateSlackBot(t *testing.T) {
@@ -50,6 +45,7 @@ func TestCreateSlackBot(t *testing.T) {
 	*/
 }
 
+/*
 func getSlackBot(secretName string) *slackappapi.SlackBot {
 	return &slackappapi.SlackBot{
 		TypeMeta: metav1.TypeMeta{},
@@ -73,3 +69,6 @@ func (f *fakeSlackClient) getSlackClient(token string, options ...slack.Option) 
 	once.Do(startServer)
 	return slack.New(token, slack.OptionAPIURL("http://"+serverAddr+"/"))
 }
+
+
+*/

@@ -19,8 +19,6 @@ import (
 
 	"github.com/jenkins-x-plugins/jx-changelog/pkg/users"
 
-	slackapp "github.com/jenkins-x-plugins/slack/pkg/apis/slack/v1alpha1"
-
 	"github.com/pkg/errors"
 
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
@@ -39,60 +37,60 @@ const (
 
 var knownPipelineStageTypes = []string{"setup", "setVersion", "preBuild", "build", "postBuild", "promote", "pipeline"}
 
-var defaultStatuses = slackapp.Statuses{
-	Merged: &slackapp.Status{
+var defaultStatuses = Statuses{
+	Merged: &Status{
 		Emoji: ":purple_heart:",
 		Text:  "merged",
 	},
-	Closed: &slackapp.Status{
+	Closed: &Status{
 		Emoji: ":closed_book:",
 		Text:  "closed and not merged",
 	},
-	Aborted: &slackapp.Status{
+	Aborted: &Status{
 		Emoji: ":red_circle:",
 		Text:  "build aborted",
 	},
-	Errored: &slackapp.Status{
+	Errored: &Status{
 		Emoji: ":red_circle:",
 		Text:  "build errored",
 	},
-	Failed: &slackapp.Status{
+	Failed: &Status{
 		Emoji: ":red_circle:",
 		Text:  "build failed",
 	},
-	Approved: &slackapp.Status{
+	Approved: &Status{
 		Emoji: ":+1:",
 		Text:  "approved",
 	},
-	NotApproved: &slackapp.Status{
+	NotApproved: &Status{
 		Emoji: ":wave:",
 		Text:  "not approved",
 	},
-	NeedsOkToTest: &slackapp.Status{
+	NeedsOkToTest: &Status{
 		Emoji: ":wave:",
 		Text:  "needs /ok-to-test",
 	},
-	Hold: &slackapp.Status{
+	Hold: &Status{
 		Emoji: ":octagonal_sign:",
 		Text:  "hold",
 	},
-	Pending: &slackapp.Status{
+	Pending: &Status{
 		Emoji: ":question:",
 		Text:  "build pending",
 	},
-	Running: &slackapp.Status{
+	Running: &Status{
 		Emoji: ":white_circle:",
 		Text:  "build running",
 	},
-	Succeeded: &slackapp.Status{
+	Succeeded: &Status{
 		Emoji: ":white_check_mark:",
 		Text:  "build succeeded",
 	},
-	LGTM: &slackapp.Status{
+	LGTM: &Status{
 		Emoji: ":+1:",
 		Text:  "lgtm",
 	},
-	Unknown: &slackapp.Status{
+	Unknown: &Status{
 		Emoji: ":grey_question:",
 		Text:  "",
 	},
@@ -360,7 +358,7 @@ func (o *SlackBotOptions) findPipelineActivities(ctx context.Context, activity *
 	return nil, nil, nil, nil
 }
 
-func getStatus(overrideStatus *slackapp.Status, defaultStatus *slackapp.Status) *slackapp.Status {
+func getStatus(overrideStatus *Status, defaultStatus *Status) *Status {
 	if overrideStatus == nil {
 		return defaultStatus
 	}
@@ -368,7 +366,7 @@ func getStatus(overrideStatus *slackapp.Status, defaultStatus *slackapp.Status) 
 }
 
 // createReviewersMessage will return a slackapp message notifying reviewers of a PR, or nil if the activity is not a PR
-func (o *SlackBotOptions) createReviewersMessage(activity *jenkinsv1.PipelineActivity, notifyReviewers bool, pr *scm.PullRequest, resolver *users.GitUserResolver) ([]slack.Attachment, []*slack.User, *slackapp.Status, error) {
+func (o *SlackBotOptions) createReviewersMessage(activity *jenkinsv1.PipelineActivity, notifyReviewers bool, pr *scm.PullRequest, resolver *users.GitUserResolver) ([]slack.Attachment, []*slack.User, *Status, error) {
 	author, err := resolver.Resolve(&pr.Author)
 	if err != nil {
 		return nil, nil, nil, errors.WithStack(err)

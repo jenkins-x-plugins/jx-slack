@@ -1,13 +1,9 @@
 package slackbot
 
 import (
-	slackapp "github.com/jenkins-x-plugins/slack/pkg/apis/slack/v1alpha1"
-	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/go-scm/scm/factory"
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
-	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/jenkins-x/jx-gitops/pkg/sourceconfigs"
-	"github.com/jenkins-x/jx-helpers/v3/pkg/cmdrunner"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/cli"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/kube"
@@ -16,35 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/slack-go/slack"
 	"k8s.io/apimachinery/pkg/util/runtime"
-
-	"k8s.io/client-go/kubernetes"
-
-	jenkinsv1client "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned"
 )
-
-type SlackOptions struct {
-	Dir        string `env:"GIT_DIR"`
-	SlackToken string `env:"SLACK_TOKEN"`
-	SlackURL   string `env:"SLACK_URL"`
-	GitURL     string `env:"GIT_URL"`
-	Name       string
-	Namespace  string
-}
-
-// SlackBotOptions contains options for the SlackBot
-type SlackBotOptions struct {
-	SlackOptions
-	KubeClient        kubernetes.Interface
-	JXClient          jenkinsv1client.Interface
-	SlackClient       *slack.Client
-	ScmClient         *scm.Client
-	SourceConfigs     *v1alpha1.SourceConfig
-	Statuses          slackapp.Statuses
-	Timestamps        map[string]map[string]*MessageReference
-	SlackUserResolver SlackUserResolver
-	GitClient         gitclient.Interface
-	CommandRunner     cmdrunner.CommandRunner
-}
 
 // Validate configures the clients for the slack bot
 func (o *SlackBotOptions) Validate() error {
