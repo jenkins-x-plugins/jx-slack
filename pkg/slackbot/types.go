@@ -55,3 +55,8 @@ type Status struct {
 	Emoji string `json:"emoji,omitempty" protobuf:"bytes,1,name=emoji"`
 	Text  string `json:"text,omitempty" protobuf:"bytes,2,name=text"`
 }
+
+type MessageReference struct {
+	ChannelID string
+	Timestamp string
+}
