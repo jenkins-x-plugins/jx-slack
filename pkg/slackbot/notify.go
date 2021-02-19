@@ -19,17 +19,29 @@ func (o *SlackBotOptions) NotifyPipeline(activity *jenkinsv1.PipelineActivity, c
 	if !enabled {
 		return false, nil, nil, nil
 	}
+
+	prn, err := getPullRequestNumber(activity)
+	if err != nil {
+		log.Logger().Warnf("failed to get PullRequest number for activity %s", activity.Name)
+	}
+
+	if !o.matchesPipeline(activity, cfg, prn) {
+		return false, nil, nil, nil
+	}
+	if prn <= 0 {
+		return true, nil, nil, nil
+	}
 	var pr *scm.PullRequest
-	var err error
 	var resolver *users.GitUserResolver
-	pr, resolver, err = o.getPullRequest(context.TODO(), activity)
+	pr, resolver, err = o.getPullRequest(context.TODO(), activity, prn)
 	if err != nil {
 		return false, nil, nil, errors.WithStack(err)
 	}
-	if pr == nil {
-		return false, nil, nil, nil
-	}
 
+	if pr == nil {
+		log.Logger().Warnf("no Pull Request found for %s PR %d", activity.Name, prn)
+		pr = &scm.PullRequest{}
+	}
 	var labels []string
 	for _, v := range pr.Labels {
 		labels = append(labels, v.Name)
@@ -40,6 +52,40 @@ func (o *SlackBotOptions) NotifyPipeline(activity *jenkinsv1.PipelineActivity, c
 	}
 	return true, pr, resolver, nil
 }
+
+func (o *SlackBotOptions) matchesPipeline(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify, prn int) bool {
+	switch cfg.Pipeline {
+	case v1alpha1.PipelineKindAll:
+		return true
+	}
+	failed := activity.Spec.Status == jenkinsv1.ActivityStatusTypeError || activity.Spec.Status == jenkinsv1.ActivityStatusTypeFailed
+	succeeded := activity.Spec.Status == jenkinsv1.ActivityStatusTypeSucceeded
+	switch cfg.Kind {
+	case v1alpha1.NotifyKindNone, v1alpha1.NotifyKindNever:
+		return false
+	case v1alpha1.NotifyKindAlways:
+		return true
+	case v1alpha1.NotifyKindFailure:
+		return failed
+	case v1alpha1.NotifyKindFailureOrFirstSuccess:
+		if succeeded {
+			// TODO lets find if the last status we logged was a fail...
+			flag, err := o.previousPipelineFailed(activity)
+			if err != nil {
+				log.Logger().Warnf("failed to find if previous pipeline of %s was failed: %s", activity.Name, err.Error())
+				return false
+			}
+			return flag
+		}
+		return failed
+	case v1alpha1.NotifyKindSuccess:
+		return succeeded
+	default:
+		log.Logger().Warnf("invalid notify kind %s", string(cfg.Kind))
+		return false
+	}
+}
+
 func (o *SlackBotOptions) shouldSendPipelineMessage(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify) bool {
 	failed := activity.Spec.Status == jenkinsv1.ActivityStatusTypeError || activity.Spec.Status == jenkinsv1.ActivityStatusTypeFailed
 	succeeded := activity.Spec.Status == jenkinsv1.ActivityStatusTypeSucceeded

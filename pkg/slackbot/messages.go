@@ -585,32 +585,21 @@ func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messag
 }
 
 //getPullRequest will return the PullRequestInfo for the activity, or nil if it's not a pull request
-func (o *SlackBotOptions) getPullRequest(ctx context.Context, activity *jenkinsv1.PipelineActivity) (pr *scm.PullRequest,
-	resolver *users.GitUserResolver, err error) {
-	if prn, err := getPullRequestNumber(activity); prn > 0 {
-		if err != nil {
-			return nil, nil, err
-		}
-		if activity.Spec.GitURL == "" {
-			return nil, nil, fmt.Errorf("no GitURL on PipelineActivity %s", activity.Name)
-		}
-		gitInfo, err := giturl.ParseGitURL(activity.Spec.GitURL)
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to parse git URL %s", activity.Spec.GitURL)
-		}
-
-		prn, err := getPullRequestNumber(activity)
-		if err != nil {
-			return nil, nil, err
-		}
-		resolver := &users.GitUserResolver{
-			GitProvider: o.ScmClient,
-		}
-		fullName := scm.Join(gitInfo.Organisation, gitInfo.Name)
-		pr, _, err := o.ScmClient.PullRequests.Find(ctx, fullName, prn)
-		return pr, resolver, err
+func (o *SlackBotOptions) getPullRequest(ctx context.Context, activity *jenkinsv1.PipelineActivity, prn int) (pr *scm.PullRequest, resolver *users.GitUserResolver, err error) {
+	if activity.Spec.GitURL == "" {
+		return nil, nil, fmt.Errorf("no GitURL on PipelineActivity %s", activity.Name)
 	}
-	return nil, nil, nil
+	gitInfo, err := giturl.ParseGitURL(activity.Spec.GitURL)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to parse git URL %s", activity.Spec.GitURL)
+	}
+
+	resolver = &users.GitUserResolver{
+		GitProvider: o.ScmClient,
+	}
+	fullName := scm.Join(gitInfo.Organisation, gitInfo.Name)
+	pr, _, err = o.ScmClient.PullRequests.Find(ctx, fullName, prn)
+	return pr, resolver, err
 }
 
 func (o *SlackBotOptions) findMessageRefViaAnnotations(activity *jenkinsv1.PipelineActivity,
