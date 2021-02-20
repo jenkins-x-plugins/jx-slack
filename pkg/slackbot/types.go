@@ -11,12 +11,13 @@ import (
 )
 
 type SlackOptions struct {
-	Dir        string `env:"GIT_DIR"`
-	SlackToken string `env:"SLACK_TOKEN"`
-	SlackURL   string `env:"SLACK_URL"`
-	GitURL     string `env:"GIT_URL"`
-	Name       string
-	Namespace  string
+	Dir           string `env:"GIT_DIR"`
+	SlackToken    string `env:"SLACK_TOKEN"`
+	SlackURL      string `env:"SLACK_URL"`
+	GitURL        string `env:"GIT_URL"`
+	Name          string
+	Namespace     string
+	FakeTimestamp string
 }
 
 // SlackBotOptions contains options for the SlackBot

@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"k8s.io/client-go/kubernetes/fake"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/ghodss/yaml"
@@ -24,6 +25,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	// generateTestOutput enable to regenerate the expected output
+	generateTestOutput = false
+)
+
 func TestPipelineMessages(t *testing.T) {
 	ns := "jx"
 	owner := "myorg"
@@ -32,9 +38,10 @@ func TestPipelineMessages(t *testing.T) {
 	channel := v1alpha1.DefaultSlackChannel
 
 	testCases := []struct {
-		name     string
-		kind     v1alpha1.NotifyKind
-		expected []int
+		name             string
+		kind             v1alpha1.NotifyKind
+		expected         []int
+		expectedMessages []string
 	}{
 		{
 			name:     "fail-or-success",
@@ -47,6 +54,8 @@ func TestPipelineMessages(t *testing.T) {
 			expected: []int{1, 0},
 		},
 	}
+
+	testDir := filepath.Join("test_data", "messages")
 
 	for _, tc := range testCases {
 		name := tc.name
@@ -93,11 +102,12 @@ func TestPipelineMessages(t *testing.T) {
 		err := o.PipelineMessage(pa1)
 		require.NoError(t, err, "failed to process pipeline %s for test %s", pa1.Name, name)
 
+		expectedDir := filepath.Join(testDir, name)
 		expectedCount := 0
 		if len(tc.expected) > 0 {
 			expectedCount = tc.expected[0]
 		}
-		slackClient.AssertMessageCount(t, channel, expectedCount, "for activity "+pa1.Name+" for test "+name)
+		slackClient.AssertMessageCount(t, channel, expectedCount, expectedDir, "pa1", generateTestOutput, "for activity "+pa1.Name+" for test "+name)
 		slackClient.Messages = nil
 
 		err = o.PipelineMessage(pa2)
@@ -107,7 +117,7 @@ func TestPipelineMessages(t *testing.T) {
 		if len(tc.expected) > 1 {
 			expectedCount = tc.expected[1]
 		}
-		slackClient.AssertMessageCount(t, channel, expectedCount, "for activity "+pa2.Name+" for test "+name)
+		slackClient.AssertMessageCount(t, channel, expectedCount, expectedDir, "pa2", generateTestOutput, "for activity "+pa2.Name+" for test "+name)
 	}
 }
 

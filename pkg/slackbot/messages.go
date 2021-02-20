@@ -511,7 +511,7 @@ func getPullRequestNumber(activity *jenkinsv1.PipelineActivity) (int, *PipelineD
 func (o *SlackBotOptions) postMessage(channel string, directMessage bool, messageType string,
 	activity *jenkinsv1.PipelineActivity, all []jenkinsv1.PipelineActivity, options []slack.MsgOption,
 	createIfMissing bool) error {
-	timestamp := ""
+	timestamp := o.FakeTimestamp
 	messageRef := o.findMessageRefViaAnnotations(activity, channel, messageType)
 	channelId := channel
 
