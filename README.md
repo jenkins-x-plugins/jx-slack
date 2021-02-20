@@ -1,11 +1,8 @@
-# slack - VERY EARLY ALPHA
+# slack 
 
-WARNING: This is an experimental Jenkins X Labs project, it is likely to have significant change and APIs may break while
-we gather feedback and aim to get it into an alpha state.
+The Slack app for Jenkins X provides integration with Jenkins X and Slack
 
-The Slack app for Jenkins X provides integration with Jenkins X and Slack, originally authored at CloudBees by Pete Muir
-
-This has been developed and tested so far using pipelines triggred by commits from GitHub and deployed using Jenkins X on Google Container Engine.
+This has been developed and tested so far using pipelines triggered by commits from GitHub and deployed using Jenkins X on Google Container Engine.
 
 ## Features
 
