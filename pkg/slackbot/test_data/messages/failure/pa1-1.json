@@ -2,6 +2,6 @@
   {
     "color": "danger",
     "callback_id": "pipelineactivity:myorg-myrepo-main-1",
-    "title": "Pipeline \u003chttps://fake.git/myorg/|myorg\u003e/\u003chttps://fake.git/myorg/myrepo.git|myrepo\u003e (Build \u003chttps://dashboard-jx.dev.jenkins-x.me/myorg/myorg/main/1|#1\u003e)"
+    "title": "Pipeline \u003chttps://fake.git/myorg/|myorg\u003e/\u003chttps://fake.git/myorg/myrepo.git|myrepo\u003e (Build \u003chttps://dashboard-jx.dev.jenkins-x.me/myorg/myrepo/main/1|#1\u003e)"
   }
 ]

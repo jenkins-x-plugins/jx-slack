@@ -27,7 +27,7 @@ import (
 
 var (
 	// generateTestOutput enable to regenerate the expected output
-	generateTestOutput = false
+	generateTestOutput = true
 )
 
 func TestPipelineMessages(t *testing.T) {

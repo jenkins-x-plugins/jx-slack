@@ -34,6 +34,7 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 
 	cfg := o.getSlackConfigForPipeline(activity)
 	if cfg == nil || cfg.Channel == "" {
+		log.Logger().Infof("no configuration for %s", activity.Namespace)
 		return nil
 	}
 	channel := channelName(cfg.Channel)
@@ -413,7 +414,7 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 	buildURL := spec.BuildURL
 	if format.DashboardURL != "" {
 		owner := spec.GitOwner
-		repoName := spec.GitOwner
+		repoName := spec.GitRepository
 		branch := spec.GitBranch
 		build := spec.Build
 		if owner != "" && repoName != "" && branch != "" && build != "" {

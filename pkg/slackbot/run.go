@@ -7,6 +7,7 @@ import (
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/cli"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/kube"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/kube/jxclient"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/kube/services"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/slack-go/slack"
@@ -63,6 +64,22 @@ func (o *SlackBotOptions) Validate() error {
 		return errors.Wrapf(err, "failed to load source configs from dir %s", o.Dir)
 	}
 
+	// lets find the dashboard URL
+	if o.MessageFormat.DashboardURL == "" {
+		ingressName := "jx-pipelines-visualizer"
+		o.MessageFormat.DashboardURL, err = services.FindIngressURL(o.KubeClient, o.Namespace, ingressName)
+		if err != nil {
+			return errors.Wrapf(err, "failed to find dashboard ingress %s in namespace %s", ingressName, o.Namespace)
+		}
+
+		if o.MessageFormat.DashboardURL == "" {
+			log.Logger().Warnf("no dashboard ingress %s in namespace %s so cannot link to the dasboard", ingressName, o.Namespace)
+		}
+
+	}
+	if o.MessageFormat.DashboardURL != "" {
+		log.Logger().Infof("using the dashboard URL %s", o.MessageFormat.DashboardURL)
+	}
 	return nil
 }
 
