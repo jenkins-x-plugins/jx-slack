@@ -20,9 +20,19 @@ type SlackOptions struct {
 	FakeTimestamp string
 }
 
+type MessageFormat struct {
+	DashboardURL     string
+	ShowRepository   bool
+	ShowBuildURL     bool
+	ShowBuildLogs    bool
+	ShowReleaseNotes bool
+	ShowSteps        bool
+}
+
 // SlackBotOptions contains options for the SlackBot
 type SlackBotOptions struct {
 	SlackOptions
+	MessageFormat     MessageFormat
 	KubeClient        kubernetes.Interface
 	JXClient          jenkinsv1client.Interface
 	SlackClient       slacker.Interface

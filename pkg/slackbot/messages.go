@@ -395,6 +395,7 @@ func containsOneOf(a []*scm.Label, x ...string) bool {
 }
 
 func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActivity, pr *scm.PullRequest) ([]slack.MsgOption, bool, error) {
+	format := &o.MessageFormat
 	spec := &activity.Spec
 	status := pipelineStatus(activity)
 	icon := pipelineIcon(status)
@@ -408,7 +409,20 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 	} else if prn > 0 {
 		messageText = fmt.Sprintf("%s%s", messageText, link(pullRequestName(pr.Link), pr.Link))
 	}
-	messageText = fmt.Sprintf("%s (Build %s)", messageText, buildNumber(spec))
+
+	buildURL := spec.BuildURL
+	if format.DashboardURL != "" {
+		owner := spec.GitOwner
+		repoName := spec.GitOwner
+		branch := spec.GitBranch
+		build := spec.Build
+		if owner != "" && repoName != "" && branch != "" && build != "" {
+			buildURL = stringhelpers.UrlJoin(format.DashboardURL, owner, repoName, branch, build)
+		}
+	}
+
+	buildNumber := link("#"+spec.Build, buildURL)
+	messageText = fmt.Sprintf("%s (Build %s)", messageText, buildNumber)
 
 	// lets ignore old pipelines
 	dayAgo := time.Now().Add(time.Duration((-24) * time.Hour)).Unix()
@@ -425,7 +439,7 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 		versionPrefix += " "
 	}
 	fallback := []string{}
-	if spec.GitURL != "" {
+	if format.ShowRepository && spec.GitURL != "" {
 		fallback = append(fallback, "Repo: "+spec.GitURL)
 		actions = append(actions, slack.AttachmentAction{
 			Type: "button",
@@ -433,15 +447,15 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 			URL:  spec.GitURL,
 		})
 	}
-	if spec.BuildURL != "" {
-		fallback = append(fallback, "Build: "+spec.BuildURL)
+	if format.ShowBuildURL && buildURL != "" {
+		fallback = append(fallback, "Build: "+buildURL)
 		actions = append(actions, slack.AttachmentAction{
 			Type: "button",
 			Text: "Pipeline",
-			URL:  spec.BuildURL,
+			URL:  buildURL,
 		})
 	}
-	if spec.BuildLogsURL != "" {
+	if format.ShowBuildLogs && spec.BuildLogsURL != "" {
 		fallback = append(fallback, "Logs: "+spec.BuildLogsURL)
 		actions = append(actions, slack.AttachmentAction{
 			Type: "button",
@@ -449,7 +463,7 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 			URL:  strings.Replace(spec.BuildLogsURL, "gs://", "https://storage.cloud.google.com/", -1),
 		})
 	}
-	if spec.ReleaseNotesURL != "" {
+	if format.ShowReleaseNotes && spec.ReleaseNotesURL != "" {
 		fallback = append(fallback, "Release Notes: "+spec.BuildLogsURL)
 		actions = append(actions, slack.AttachmentAction{
 			Type: "button",
@@ -471,15 +485,14 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 
 	attachments = append(attachments, attachment)
 
-	/*
+	if format.ShowSteps {
 		for _, step := range spec.Steps {
 			stepAttachments := o.createAttachments(activity, &step)
 			if len(stepAttachments) > 0 {
 				attachments = append(attachments, stepAttachments...)
 			}
 		}
-	*/
-
+	}
 	options := []slack.MsgOption{
 		slack.MsgOptionAttachments(attachments...),
 	}
@@ -872,10 +885,6 @@ func (o *SlackBotOptions) mentionOrLinkUser(user *jenkinsv1.UserDetails) (string
 		return user.Name, nil
 	}
 	return "", nil
-}
-
-func buildNumber(spec *jenkinsv1.PipelineActivitySpec) string {
-	return link("#"+spec.Build, spec.BuildURL)
 }
 
 func channelName(channel string) string {

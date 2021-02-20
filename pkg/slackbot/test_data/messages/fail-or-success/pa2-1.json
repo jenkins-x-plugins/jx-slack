@@ -1,15 +1,7 @@
 [
   {
     "color": "good",
-    "fallback": "Repo: https://fake.git/myorg/myrepo.git",
     "callback_id": "pipelineactivity:myorg-myrepo-main-2",
-    "title": "Pipeline \u003chttps://fake.git/myorg/|myorg\u003e/\u003chttps://fake.git/myorg/myrepo.git|myrepo\u003e (Build #2)",
-    "actions": [
-      {
-        "text": "Repository",
-        "type": "button",
-        "url": "https://fake.git/myorg/myrepo.git"
-      }
-    ]
+    "title": "Pipeline \u003chttps://fake.git/myorg/|myorg\u003e/\u003chttps://fake.git/myorg/myrepo.git|myrepo\u003e (Build \u003chttps://dashboard-jx.dev.jenkins-x.me/myorg/myorg/main/2|#2\u003e)"
   }
 ]

@@ -98,6 +98,7 @@ func TestPipelineMessages(t *testing.T) {
 			SourceConfigs: sourceConfig,
 		}
 		o.Namespace = ns
+		o.MessageFormat.DashboardURL = "https://dashboard-jx.dev.jenkins-x.me"
 
 		err := o.PipelineMessage(pa1)
 		require.NoError(t, err, "failed to process pipeline %s for test %s", pa1.Name, name)
