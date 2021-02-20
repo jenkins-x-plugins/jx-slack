@@ -64,7 +64,7 @@ func (o *SlackBotOptions) NotifyPipeline(activity *jenkinsv1.PipelineActivity, c
 
 func (o *SlackBotOptions) matchesPipeline(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify, prn int) bool {
 	switch cfg.Pipeline {
-	case v1alpha1.PipelineKindAll:
+	case v1alpha1.PipelineKindAll, v1alpha1.PipelineKindNone:
 		return true
 	case v1alpha1.PipelineKindRelease:
 		return prn <= 0
