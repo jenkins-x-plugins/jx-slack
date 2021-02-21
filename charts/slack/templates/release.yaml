@@ -1,0 +1,261 @@
+{{- if .Capabilities.APIVersions.Has "jenkins.io/v1/Release" }}
+apiVersion: jenkins.io/v1
+kind: Release
+metadata:
+  creationTimestamp: "2021-02-21T09:29:24Z"
+  deletionTimestamp: null
+  name: '{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}'
+spec:
+  commits:
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: polish go releaser
+    sha: 0d492bb5ed9d1a9433dcd575a1d3b12dd4b51813
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: go releaser
+    sha: 057a1612ffbc020962ea0607f28ef1b8e467bf6b
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: chart
+    sha: bcf4703bbe4f59dc6bc54b103bab826435591945
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: lets discover the git URL if none is supplied
+    sha: d16aacd573e70287a0509e59007f679e7843f980
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: polish chart
+    sha: ba00fd6d502641e2e32451d5ae36c4591b64b23d
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: polish readme
+    sha: 1beb14a4ea0ed169e91953d79d321ebc2b4e0cb9
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: triggers
+    sha: ff91c03db49cdfc5c64ef580ec7d387a0250467c
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: added pipeline
+    sha: 5c52a643aeadf3adcaa0d3d2d8395c5a7c7eb4ef
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: upgrade dependencies
+    sha: 3bac8c2831815c4e351ed0b590fd2e59b3b52da9
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: better links to logs
+    sha: f0bf499939552dcbfc7041f68493fc81cbab55d5
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: use better links to build logs
+    sha: 1b7ccd6d16b2d9a5c23fca084fb3822b1a25ec6e
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: added better unit testing of message generation
+    sha: 09609d6516b751e6a595f8b78c95f3c4e3b01f34
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: added better unit testing of message generation
+    sha: 491476f1a434a9dd2b95671114dbaac23cc9f436
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: added fake slack
+
+      for better unit testing
+    sha: 235e124a2af9fed998e0875b76b529508ac0ae8c
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: first spike of finding previous pipeline
+    sha: dd2ce6aecac36ea548a67d1a6885a29012ab9477
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: add better tests of the various predicates
+    sha: 3a9f55848e82bca0d9ebb84a3203ea743ff2dfd9
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: better testing
+    sha: 27329c1e91c4dddc933775bd8d8d724f572c6805
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: refactor a bit more
+    sha: 99c44e12bb17caac15cf6cf9acf4455d30daefbb
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: refactored a bit more
+    sha: d8801e882802360d50eeddd43180acca3fd76530
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: remove old CRD code
+    sha: 06525813ff671adcc454583cf64a796a06a6e1f9
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: better validation code
+    sha: ac9c798cf2559614b2e31147d161cac5cd207b20
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: switch to latest jx-gitops
+    sha: 9b6d7decd8101ce6536c6c75a63b5cbbf05e275a
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: switch to using the gitops config
+    sha: 240965c8026931c42f6597c4e63090731c17cb01
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: migrate to v3
+
+      and simplify code
+    sha: 522e063f64db9ce27fc5a8c1dd2816d7ffd932bf
+  gitHttpUrl: https://github.com/jenkins-x/slack
+  gitOwner: jenkins-x
+  gitRepository: slack
+  name: '{{ .Chart.Name }}'
+  version: 0.0.38
+status: {}
+ 
+{{- end }}
