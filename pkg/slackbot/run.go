@@ -3,11 +3,13 @@ package slackbot
 import (
 	"github.com/jenkins-x/go-scm/scm/factory"
 	"github.com/jenkins-x/jx-gitops/pkg/sourceconfigs"
+	"github.com/jenkins-x/jx-gitops/pkg/variablefinders"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/cli"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/kube"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/kube/jxclient"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/kube/services"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/requirements"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/slack-go/slack"
@@ -48,11 +50,25 @@ func (o *SlackBotOptions) Validate() error {
 	o.SlackUserResolver = NewSlackUserResolver(o.SlackClient, o.JXClient, o.Namespace)
 
 	if o.Dir == "" {
-		if o.GitURL == "" {
-			return errors.Errorf("no $GIT_URL defined")
-		}
 		if o.GitClient == nil {
 			o.GitClient = cli.NewCLIClient("", o.CommandRunner)
+		}
+
+		if o.GitURL == "" {
+			req, err := variablefinders.FindRequirements(o.GitClient, o.JXClient, o.Namespace, o.Dir)
+			if err != nil {
+				return errors.Wrapf(err, "failed to load requirements from dev environment")
+			}
+
+			if req == nil {
+				return errors.Errorf("no Requirements in TeamSettings of dev environment in namespace %s", o.Namespace)
+			}
+
+			// lets override the dev git URL if its changed in the requirements via the .jx/settings.yaml file
+			o.GitURL = requirements.EnvironmentGitURL(req, "dev")
+			if o.GitURL == "" {
+				return errors.Errorf("could not find development environment git URL from requirements and no $GIT_URL specified")
+			}
 		}
 		o.Dir, err = gitclient.CloneToDir(o.GitClient, o.GitURL, "")
 		if err != nil {
