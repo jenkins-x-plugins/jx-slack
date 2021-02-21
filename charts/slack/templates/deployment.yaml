@@ -3,35 +3,38 @@ kind: Deployment
 metadata:
   name: {{ template "fullname" . }}
   labels:
-    draft: {{ default "draft-app" .Values.draft }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    app: jx-slack
 spec:
   replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: jx-slack
   template:
     metadata:
       labels:
-        draft: {{ default "draft-app" .Values.draft }}
         app: {{ template "fullname" . }}
       {{- if .Values.podAnnotations }}
-      annotations:
-    {{ toYaml .Values.podAnnotations | indent 8 }}
-    {{- end }}
+        annotations:
+      {{ toYaml .Values.podAnnotations | indent 6 }}
+      {{- end }}
     spec:
       containers:
-      - name: {{ .Chart.Name }}
+      - name: slack
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        command: [ "/slack" ]
-        args: [
-            "run",
-        ]
+        command:
+        - "/slack"
+        args:
+        - run
+        {{- if .Values.resources }}
         resources:
-        {{ toYaml .Values.resources | indent 12 }}
+        {{ toYaml .Values.resources | indent 6 }}
+        {{- end }}
         env:
         - name: GIT_KIND
-          value: {{ .Values.jxRequirements.cluster.gitKind }}
+          value: "{{ .Values.jxRequirements.cluster.gitKind }}"
         - name: GIT_SERVER
-          value: {{ .Values.jxRequirements.cluster.gitServer }}
+          value: "{{ .Values.jxRequirements.cluster.gitServer }}"
         - name: GIT_TOKEN
           valueFrom:
             secretKeyRef:

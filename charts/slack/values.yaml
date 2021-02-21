@@ -6,6 +6,9 @@ image:
   repository: jenkinsxio/slack
   tag: dev
   pullPolicy: IfNotPresent
+
+podAnnotations: {}
+
 resources:
   limits:
     cpu: 100m
@@ -41,14 +44,6 @@ role:
     - get
     - list
   - apiGroups:
-    - jenkins.io
-    resources:
-    - users
-    verbs:
-    - list
-    - create
-    - update
-  - apiGroups:
     - ""
     resources:
     - secrets
@@ -57,6 +52,15 @@ role:
     - serviceaccounts
     verbs:
     - get
+    - list
+  - apiGroups:
+    - extensions
+    - "networking.k8s.io"
+    resources:
+    - ingresses
+    verbs:
+    - get
+    - watch
     - list
   - apiGroups:
     - ""
@@ -68,17 +72,3 @@ role:
     - watch
     - get
     - update
-  - apiGroups:
-    - slack.app.jenkins-x.io
-    resources:
-    - slackbots
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - vault.banzaicloud.com
-    resources:
-    - vaults
-    verbs:
-    - list
-    - get
