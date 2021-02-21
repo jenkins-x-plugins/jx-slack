@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "fullname" . }}
@@ -12,57 +12,35 @@ spec:
       labels:
         draft: {{ default "draft-app" .Values.draft }}
         app: {{ template "fullname" . }}
-{{- if .Values.podAnnotations }}
+      {{- if .Values.podAnnotations }}
       annotations:
-{{ toYaml .Values.podAnnotations | indent 8 }}
-{{- end }}
+    {{ toYaml .Values.podAnnotations | indent 8 }}
+    {{- end }}
     spec:
       containers:
       - name: {{ .Chart.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        command: ["/slack"]
+        command: [ "/slack" ]
         args: [
-          "run",
-          "--port",
-          "{{ .Values.service.internalPort }}",
-          "--hmac-token",
-          "{{ .Values.hmacToken.name }}"
+            "run",
         ]
-        ports:
-        - containerPort: {{ .Values.service.internalPort }}
-        livenessProbe:
-          httpGet:
-            path: {{ .Values.probePath }}
-            port: {{ .Values.service.internalPort }}
-          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
-          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
-          successThreshold: {{ .Values.livenessProbe.successThreshold }}
-          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
-        readinessProbe:
-          httpGet:
-            path: {{ .Values.probePath }}
-            port: {{ .Values.service.internalPort }}
-          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-          successThreshold: {{ .Values.readinessProbe.successThreshold }}
-          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
         resources:
-{{ toYaml .Values.resources | indent 12 }}
+        {{ toYaml .Values.resources | indent 12 }}
         env:
-        - name: TEAM_NAMESPACE
-          value: {{ default "jx" .Values.teamNamespace}}
-        - name: SERVICE_NAME
-        {{- if .Values.service.name }}
-          value: {{ .Values.service.name }}
-        {{- else }}
-          value: {{ template "fullname" . }}
-        {{- end }}
-        volumeMounts:
-          - mountPath: /secrets/users
-            name: users
+        - name: GIT_KIND
+          value: {{ .Values.jxRequirements.cluster.gitKind }}
+        - name: GIT_SERVER
+          value: {{ .Values.jxRequirements.cluster.gitServer }}
+        - name: GIT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: {{ .Values.gitSecretName }}
+        - name: SLACK_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: token
+              name: jx-slack
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       serviceAccountName: {{ template "fullname" . }}
-      volumes:
-      - name: users
-        secret:
-          secretName: slack-users
