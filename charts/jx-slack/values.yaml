@@ -7,9 +7,17 @@ image:
   tag: dev
   pullPolicy: IfNotPresent
 
+nameOverride: jx-slack
+
 podAnnotations: {
   myannotation: abcd
 }
+
+
+secrets:
+  # if installing outside of Jenkins X then you can supply a token value here
+  # usually this is populated via external secrets via 'jx secret edit -f jx-slack' though
+  token: ""
 
 resources:
   limits:

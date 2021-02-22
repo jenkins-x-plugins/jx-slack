@@ -29,15 +29,14 @@ spec:
           resources: {}
         - name: chart-docs
           resources: {}
-        - name: release-chart
-          resources: {}
         - name: changelog
+          resources: {}
+        - name: release-chart
           resources: {}
         - name: upload-binaries
           resources: {}
         - name: promote-release
           resources: {}
-  podTemplate: {}
   serviceAccountName: tekton-bot
   timeout: 240h0m0s
 status: {}
