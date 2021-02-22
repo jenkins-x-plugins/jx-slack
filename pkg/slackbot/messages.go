@@ -34,7 +34,7 @@ func (o *SlackBotOptions) PipelineMessage(activity *jenkinsv1.PipelineActivity) 
 
 	cfg := o.getSlackConfigForPipeline(activity)
 	if cfg == nil || cfg.Channel == "" {
-		log.Logger().Infof("no configuration for %s", activity.Namespace)
+		log.Logger().Infof("no slack configuration for %s", activity.Name)
 		return nil
 	}
 	channel := channelName(cfg.Channel)

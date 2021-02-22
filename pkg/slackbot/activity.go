@@ -63,7 +63,6 @@ func (o *SlackBotOptions) previousPipelineFailed(activity *jenkinsv1.PipelineAct
 func (o *SlackBotOptions) WatchActivities() chan struct{} {
 	log.Logger().Infof("Watching pipeline activities in namespace %s and slackbot config %s", o.Namespace, o.Name)
 
-	// todo wonder if we should switch to a shared index informer and have just one watch rather than one for each slackbot see https://github.com/jenkins-x-plugins/jx-slack/issues/15
 	factory := informers.NewSharedInformerFactoryWithOptions(o.JXClient, 0, informers.WithNamespace(o.Namespace))
 
 	informer := factory.Jenkins().V1().PipelineActivities().Informer()
@@ -86,7 +85,7 @@ func (o *SlackBotOptions) onObj(obj interface{}) {
 		log.Logger().Infof("Object is not a PipelineActivity %#v\n", obj)
 		return
 	}
-	log.Logger().Infof("activity %s ", activity.Name)
+	log.Logger().Debugf("activity %s ", activity.Name)
 	err := o.PipelineMessage(activity)
 	if err != nil {
 		log.Logger().Warnf("%v\n", err)
