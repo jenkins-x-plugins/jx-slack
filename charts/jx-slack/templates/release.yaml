@@ -1,0 +1,47 @@
+{{- if .Capabilities.APIVersions.Has "jenkins.io/v1/Release" }}
+apiVersion: jenkins.io/v1
+kind: Release
+metadata:
+  creationTimestamp: "2021-02-22T07:10:53Z"
+  deletionTimestamp: null
+  name: '{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}'
+spec:
+  commits:
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: use correct image name
+    sha: ea2f16f9a29085bd841862e4445a02efd2843a83
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: move the source to the jenkins-x-plugins
+    sha: 8c14653b01539469c4bd72543dcabd7206fe421e
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: move the source to the jenkins-x-plugins
+    sha: a44e2eca10f8ae60f168978a276d7093755523e9
+  gitHttpUrl: https://github.com/jenkins-x-plugins/jx-slack
+  gitOwner: jenkins-x-plugins
+  gitRepository: jx-slack
+  name: '{{ .Chart.Name }}'
+  version: 0.0.40
+status: {}
+ 
+{{- end }}
