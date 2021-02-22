@@ -4,6 +4,7 @@ metadata:
   name: {{ template "name" . }}
   labels:
     app: jx-slack
+    git.jenkins-x.io/sha: annotate
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
