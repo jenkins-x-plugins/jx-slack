@@ -1,7 +1,7 @@
 CHART_REPO := gs://jenkinsxio/charts
 CURRENT=$(pwd)
 GO_MOD := GO111MODULE=on go
-NAME := slack
+NAME := jx-slack
 OS := $(shell uname)
 
 HELMDOCS := $(GOPATH)/bin/helm-docs
