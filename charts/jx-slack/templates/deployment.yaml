@@ -23,7 +23,7 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         command:
-        - "/slack"
+        - "/jx-slack"
         args:
         - run
         {{- if .Values.resources }}

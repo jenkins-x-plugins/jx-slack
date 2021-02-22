@@ -8,4 +8,5 @@ RUN apk add --update ca-certificates openssl
 
 EXPOSE 8080
 ENTRYPOINT ["/jx-slack"]
+CMD ["run"]
 COPY ./build/linux/ /
