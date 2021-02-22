@@ -423,7 +423,11 @@ func (o *SlackBotOptions) createPipelineMessage(activity *jenkinsv1.PipelineActi
 	}
 
 	buildNumber := link("#"+spec.Build, buildURL)
-	messageText = fmt.Sprintf("%s (Build %s)", messageText, buildNumber)
+	context := spec.Context
+	if context == "" {
+		context = "Build"
+	}
+	messageText = fmt.Sprintf("%s (%s %s)", messageText, context, buildNumber)
 
 	// lets ignore old pipelines
 	dayAgo := time.Now().Add(time.Duration((-24) * time.Hour)).Unix()

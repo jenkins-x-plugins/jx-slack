@@ -27,7 +27,7 @@ import (
 
 var (
 	// generateTestOutput enable to regenerate the expected output
-	generateTestOutput = true
+	generateTestOutput = false
 )
 
 func TestPipelineMessages(t *testing.T) {
@@ -85,8 +85,8 @@ func TestPipelineMessages(t *testing.T) {
 			},
 		}
 
-		pa1 := testpipelines.CreateTestPipelineActivity(ns, owner, repo, branch, "", "1", jenkinsv1.ActivityStatusTypeFailed)
-		pa2 := testpipelines.CreateTestPipelineActivity(ns, owner, repo, branch, "", "2", jenkinsv1.ActivityStatusTypeSucceeded)
+		pa1 := testpipelines.CreateTestPipelineActivity(ns, owner, repo, branch, "release", "1", jenkinsv1.ActivityStatusTypeFailed)
+		pa2 := testpipelines.CreateTestPipelineActivity(ns, owner, repo, branch, "release", "2", jenkinsv1.ActivityStatusTypeSucceeded)
 
 		jxClient := fakejx.NewSimpleClientset(pa1, pa2)
 
