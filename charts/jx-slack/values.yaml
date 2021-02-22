@@ -3,8 +3,8 @@
 # Declare variables to be passed into your templates.
 replicaCount: 1
 image:
-  repository: jenkinsxio/slack
-  tag: dev
+  repository: gcr.io/jenkinsxio/jx-slack
+  tag: 0.0.39
   pullPolicy: IfNotPresent
 
 podAnnotations: {}
