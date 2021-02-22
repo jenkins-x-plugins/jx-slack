@@ -6,7 +6,10 @@ FROM alpine:3.8
 # OpenSSL is required so wget can query HTTPS endpoints for health checking.
 RUN apk add --update ca-certificates openssl
 
+RUN git config --global credential.helper store
+
 EXPOSE 8080
 ENTRYPOINT ["/jx-slack"]
 CMD ["run"]
+
 COPY ./build/linux/ /
