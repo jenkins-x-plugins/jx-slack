@@ -1,7 +1,7 @@
 package slackbot
 
 import (
-	"github.com/jenkins-x-plugins/slack/pkg/slacker"
+	"github.com/jenkins-x-plugins/jx-slack/pkg/slacker"
 	"github.com/jenkins-x/go-scm/scm"
 	jenkinsv1client "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned"
 	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"

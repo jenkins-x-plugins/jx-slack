@@ -1,8 +1,8 @@
 package slackbot
 
 import (
-	"github.com/jenkins-x-plugins/slack/pkg/slacker/fakeslack"
-	"github.com/jenkins-x-plugins/slack/pkg/testpipelines"
+	"github.com/jenkins-x-plugins/jx-slack/pkg/slacker/fakeslack"
+	"github.com/jenkins-x-plugins/jx-slack/pkg/testpipelines"
 	fakescm "github.com/jenkins-x/go-scm/scm/driver/fake"
 	fakejx "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned/fake"
 	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"

@@ -3,7 +3,7 @@ package slackbot
 import (
 	"bufio"
 	"fmt"
-	"github.com/jenkins-x-plugins/slack/pkg/slacker"
+	"github.com/jenkins-x-plugins/jx-slack/pkg/slacker"
 	"os"
 	"strings"
 

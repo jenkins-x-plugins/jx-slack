@@ -1,4 +1,4 @@
-module github.com/jenkins-x-plugins/slack
+module github.com/jenkins-x-plugins/jx-slack
 
 require (
 	github.com/evanphx/json-patch v4.9.0+incompatible
