@@ -14,8 +14,8 @@ spec:
       labels:
         app: {{ template "fullname" . }}
       {{- if .Values.podAnnotations }}
-        annotations:
-{{ toYaml .Values.podAnnotations | indent 10 }}
+      annotations:
+{{ toYaml .Values.podAnnotations | indent 8 }}
       {{- end }}
     spec:
       containers:
