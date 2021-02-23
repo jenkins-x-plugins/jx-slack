@@ -19,7 +19,6 @@ package slackbot
 import (
 	"encoding/json"
 
-	jsonmergepatch "github.com/evanphx/json-patch"
 	"github.com/mattbaird/jsonpatch"
 )
 
@@ -35,14 +34,6 @@ func marshallBeforeAfter(before, after interface{}) ([]byte, []byte, error) {
 	}
 
 	return rawBefore, rawAfter, nil
-}
-
-func CreateMergePatch(before, after interface{}) ([]byte, error) {
-	rawBefore, rawAfter, err := marshallBeforeAfter(before, after)
-	if err != nil {
-		return nil, err
-	}
-	return jsonmergepatch.CreateMergePatch(rawBefore, rawAfter)
 }
 
 func CreatePatch(before, after interface{}) (JSONPatch, error) {

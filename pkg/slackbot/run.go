@@ -17,7 +17,7 @@ import (
 )
 
 // Validate configures the clients for the slack bot
-func (o *SlackBotOptions) Validate() error {
+func (o *Options) Validate() error {
 	if o.SlackClient == nil {
 		if o.SlackToken == "" {
 			return errors.Errorf("no $SLACK_TOKEN defined")
@@ -99,7 +99,7 @@ func (o *SlackBotOptions) Validate() error {
 	return nil
 }
 
-func (o *SlackBotOptions) Run() error {
+func (o *Options) Run() error {
 	defer runtime.HandleCrash()
 
 	err := o.Validate()

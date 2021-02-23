@@ -30,7 +30,7 @@ type MessageFormat struct {
 }
 
 // SlackBotOptions contains options for the SlackBot
-type SlackBotOptions struct {
+type Options struct {
 	SlackOptions
 	MessageFormat     MessageFormat
 	KubeClient        kubernetes.Interface

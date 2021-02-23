@@ -11,7 +11,7 @@ import (
 )
 
 func NewCmdRun() *cobra.Command {
-	var o = &slackbot.SlackBotOptions{}
+	var o = &slackbot.Options{}
 
 	var cmd = &cobra.Command{
 		Use:   "run",

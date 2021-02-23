@@ -32,7 +32,7 @@ type Attachment struct {
 	Color      string   `json:"color,omitempty"`
 	Fallback   string   `json:"fallback,omitempty"`
 	CallbackID string   `json:"callback_id,omitempty"`
-	Title      string   `json:"title",omitempty"`
+	Title      string   `json:"title,omitempty"`
 	Actions    []Action `json:"actions,omitempty"`
 	Timestamp  int      `json:"ts,omitempty"`
 }
@@ -49,7 +49,7 @@ func NewFakeSlack() *FakeSlack {
 	return &FakeSlack{}
 }
 
-func (f *FakeSlack) OpenConversation(params *slack.OpenConversationParameters) (*slack.Channel, bool, bool, error) {
+func (f *FakeSlack) OpenConversation(_ *slack.OpenConversationParameters) (*slack.Channel, bool, bool, error) {
 	return nil, false, false, nil
 }
 

@@ -15,13 +15,13 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func (c *SlackBotOptions) getPipelineActivities(ctx context.Context, org string, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
-	return c.JXClient.JenkinsV1().PipelineActivities(c.Namespace).List(ctx, metav1.ListOptions{
+func (o *Options) getPipelineActivities(ctx context.Context, org string, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
+	return o.JXClient.JenkinsV1().PipelineActivities(o.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("owner=%s, branch=PR-%d, repository=%s", org, prn, repo),
 	})
 }
 
-func (o *SlackBotOptions) previousPipelineFailed(activity *jenkinsv1.PipelineActivity) (bool, error) {
+func (o *Options) previousPipelineFailed(activity *jenkinsv1.PipelineActivity) (bool, error) {
 	build := activity.Spec.Build
 	if build == "" || build == "1" {
 		return false, nil
@@ -61,7 +61,7 @@ func (o *SlackBotOptions) previousPipelineFailed(activity *jenkinsv1.PipelineAct
 }
 
 // WatchActivities watches for pipeline activities
-func (o *SlackBotOptions) WatchActivities() chan struct{} {
+func (o *Options) WatchActivities() chan struct{} {
 	log.Logger().Infof("Watching pipeline activities in namespace %s and slackbot config %s", o.Namespace, o.Name)
 
 	factory := informers.NewSharedInformerFactoryWithOptions(o.JXClient, 0, informers.WithNamespace(o.Namespace))
@@ -80,7 +80,7 @@ func (o *SlackBotOptions) WatchActivities() chan struct{} {
 	return stopper
 }
 
-func (o *SlackBotOptions) onObj(obj interface{}) {
+func (o *Options) onObj(obj interface{}) {
 	activity, ok := obj.(*jenkinsv1.PipelineActivity)
 	if !ok {
 		log.Logger().Infof("Object is not a PipelineActivity %#v\n", obj)
@@ -97,6 +97,6 @@ func (o *SlackBotOptions) onObj(obj interface{}) {
 	}
 }
 
-func (o SlackBotOptions) onUpdate(_ interface{}, newObj interface{}) {
+func (o Options) onUpdate(_ interface{}, newObj interface{}) {
 	o.onObj(newObj)
 }

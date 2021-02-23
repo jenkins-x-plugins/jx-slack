@@ -91,7 +91,7 @@ func TestPipelineMessages(t *testing.T) {
 
 		jxClient := fakejx.NewSimpleClientset(pa1, pa2)
 
-		o := &SlackBotOptions{
+		o := &Options{
 			KubeClient:    fake.NewSimpleClientset(),
 			JXClient:      jxClient,
 			ScmClient:     scmClient,
@@ -124,7 +124,7 @@ func TestPipelineMessages(t *testing.T) {
 }
 
 func TestSlackBotOptions_createAttachments(t *testing.T) {
-	o := &SlackBotOptions{}
+	o := &Options{}
 	type fields struct {
 		filename string
 	}
@@ -141,7 +141,7 @@ func TestSlackBotOptions_createAttachments(t *testing.T) {
 			act, err := getPipelineActivity(tt.fields.filename)
 			assert.NoError(t, err, "failed to read files")
 
-			attachments := []slack.Attachment{}
+			var attachments []slack.Attachment
 			for _, step := range act.Spec.Steps {
 				stepAttachments := o.createAttachments(act, &step)
 				if len(stepAttachments) > 0 {

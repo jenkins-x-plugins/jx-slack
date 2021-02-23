@@ -15,7 +15,7 @@ import (
 )
 
 // NotifyPipeline returns true if the given pipeline activity matches the configuration
-func (o *SlackBotOptions) NotifyPipeline(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify) (bool, *scm.PullRequest, *users.GitUserResolver, error) {
+func (o *Options) NotifyPipeline(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify) (bool, *scm.PullRequest, *users.GitUserResolver, error) {
 	enabled := o.shouldSendPipelineMessage(activity, cfg)
 	if !enabled {
 		return false, nil, nil, nil
@@ -63,7 +63,7 @@ func (o *SlackBotOptions) NotifyPipeline(activity *jenkinsv1.PipelineActivity, c
 	return true, pr, resolver, nil
 }
 
-func (o *SlackBotOptions) matchesPipeline(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify, prn int) bool {
+func (o *Options) matchesPipeline(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify, prn int) bool {
 	switch cfg.Pipeline {
 	case v1alpha1.PipelineKindAll, v1alpha1.PipelineKindNone:
 		return true
@@ -77,7 +77,7 @@ func (o *SlackBotOptions) matchesPipeline(activity *jenkinsv1.PipelineActivity, 
 	}
 }
 
-func (o *SlackBotOptions) shouldSendPipelineMessage(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify) bool {
+func (o *Options) shouldSendPipelineMessage(activity *jenkinsv1.PipelineActivity, cfg *v1alpha1.SlackNotify) bool {
 	failed := activity.Spec.Status == jenkinsv1.ActivityStatusTypeError || activity.Spec.Status == jenkinsv1.ActivityStatusTypeFailed
 	succeeded := activity.Spec.Status == jenkinsv1.ActivityStatusTypeSucceeded
 	switch cfg.Kind {

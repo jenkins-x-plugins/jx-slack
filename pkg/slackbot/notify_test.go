@@ -210,7 +210,7 @@ func TestNotifyPipeline(t *testing.T) {
 		cfg := &tc.cfg
 		t.Logf("running case %s\n", name)
 
-		o := &slackbot.SlackBotOptions{
+		o := &slackbot.Options{
 			KubeClient: fake.NewSimpleClientset(),
 			JXClient:   jxClient,
 			ScmClient:  scmClient,

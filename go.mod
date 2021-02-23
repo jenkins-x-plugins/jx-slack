@@ -1,7 +1,6 @@
 module github.com/jenkins-x-plugins/jx-slack
 
 require (
-	github.com/evanphx/json-patch v4.9.0+incompatible
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/jenkins-x-plugins/jx-changelog v0.0.34
 	github.com/jenkins-x/go-scm v1.5.223
