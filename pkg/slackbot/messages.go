@@ -797,7 +797,7 @@ func describePromotePullRequest(activity *jenkinsv1.PipelineActivity, promote *j
 func pullRequestName(url string) string {
 	idx := strings.LastIndex(url, "/")
 	if idx > 0 {
-		return "#" + url[idx+1:]
+		return "  PR " + url[idx+1:]
 	}
 	return url
 }
