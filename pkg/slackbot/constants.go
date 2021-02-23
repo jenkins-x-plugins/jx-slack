@@ -1,7 +1,10 @@
 package slackbot
 
 const (
-	SlackAnnotationPrefix        = "bot.slack.apps.jenkins-x.io"
+	// SlackAnnotationPrefix annotatation used on a PipelineActivity to associate a pipeline instance with a slack
+	// messsage in a particular channel
+	SlackAnnotationPrefix = "message.slack.jenkins-x.io"
+
 	pullRequestReviewMessageType = "pr"
 	pipelineMessageType          = "pipeline"
 )
