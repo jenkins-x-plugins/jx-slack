@@ -2,10 +2,6 @@ package fakeslack
 
 import (
 	"encoding/json"
-	"github.com/jenkins-x/jx-helpers/v3/pkg/files"
-	"github.com/jenkins-x/jx-helpers/v3/pkg/testhelpers"
-	"github.com/slack-go/slack"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +9,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/jenkins-x/jx-helpers/v3/pkg/files"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/testhelpers"
+	"github.com/slack-go/slack"
+	"github.com/stretchr/testify/require"
 )
 
 // FakeSlack the fake slack

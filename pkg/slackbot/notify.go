@@ -2,10 +2,11 @@ package slackbot
 
 import (
 	"context"
+	"strings"
+
 	"github.com/jenkins-x-plugins/jx-changelog/pkg/users"
 	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
-	"strings"
 
 	"github.com/pkg/errors"
 

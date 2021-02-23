@@ -3,9 +3,10 @@ package slackbot
 import (
 	"bufio"
 	"fmt"
-	"github.com/jenkins-x-plugins/jx-slack/pkg/slacker"
 	"os"
 	"strings"
+
+	"github.com/jenkins-x-plugins/jx-slack/pkg/slacker"
 
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 

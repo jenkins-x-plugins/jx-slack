@@ -6,7 +6,7 @@ require (
 	github.com/jenkins-x-plugins/jx-changelog v0.0.34
 	github.com/jenkins-x/go-scm v1.5.223
 	github.com/jenkins-x/jx-api/v4 v4.0.24
-	github.com/jenkins-x/jx-gitops v0.2.3
+	github.com/jenkins-x/jx-gitops v0.2.4
 	github.com/jenkins-x/jx-helpers/v3 v3.0.81
 	github.com/jenkins-x/jx-logging/v3 v3.0.3
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a

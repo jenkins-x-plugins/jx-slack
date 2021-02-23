@@ -1,17 +1,18 @@
 package slackbot
 
 import (
+	"io/ioutil"
+	"path"
+	"path/filepath"
+	"testing"
+
 	"github.com/jenkins-x-plugins/jx-slack/pkg/slacker/fakeslack"
 	"github.com/jenkins-x-plugins/jx-slack/pkg/testpipelines"
 	fakescm "github.com/jenkins-x/go-scm/scm/driver/fake"
 	fakejx "github.com/jenkins-x/jx-api/v4/pkg/client/clientset/versioned/fake"
 	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
 	"k8s.io/client-go/kubernetes/fake"
-	"path"
-	"path/filepath"
-	"testing"
 
 	"github.com/ghodss/yaml"
 

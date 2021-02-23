@@ -3,6 +3,9 @@ package slackbot
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 	informers "github.com/jenkins-x/jx-api/v4/pkg/client/informers/externalversions"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
@@ -10,8 +13,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
-	"strconv"
-	"strings"
 )
 
 func (c *SlackBotOptions) getPipelineActivities(ctx context.Context, org string, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
