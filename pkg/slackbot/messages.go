@@ -409,7 +409,7 @@ func (o *Options) createPipelineMessage(activity *jenkinsv1.PipelineActivity, pr
 	if prn, _, err := getPullRequestNumber(activity); err != nil {
 		return nil, false, err
 	} else if prn > 0 {
-		messageText = fmt.Sprintf("%s%s", messageText, link(pullRequestName(pr.Link), pr.Link))
+		messageText = fmt.Sprintf("%s : PR %s", messageText, link(pullRequestName(pr.Link), pr.Link))
 	}
 
 	buildURL := spec.BuildURL
@@ -797,7 +797,7 @@ func describePromotePullRequest(activity *jenkinsv1.PipelineActivity, promote *j
 func pullRequestName(url string) string {
 	idx := strings.LastIndex(url, "/")
 	if idx > 0 {
-		return "  PR " + url[idx+1:]
+		return url[idx+1:]
 	}
 	return url
 }
