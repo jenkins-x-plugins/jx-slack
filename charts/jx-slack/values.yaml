@@ -31,6 +31,10 @@ gitSecretName: tekton-git
 
 terminationGracePeriodSeconds: 10
 
+jx:
+  # whether to create a Release CRD when installing charts with Release CRDs included
+  releaseCRD: true
+
 jxRequirements:
   cluster:
     gitKind: github
