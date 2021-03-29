@@ -1,0 +1,47 @@
+{{- if and (.Capabilities.APIVersions.Has "jenkins.io/v1/Release") (hasKey .Values.jx "releaseCRD") (.Values.jx.releaseCRD)}}
+apiVersion: jenkins.io/v1
+kind: Release
+metadata:
+  creationTimestamp: "2021-03-29T08:20:52Z"
+  deletionTimestamp: null
+  name: '{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}'
+spec:
+  commits:
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: fix chart
+    sha: 70bdd5684f958a0c71d84b0d0c5b4f213727004e
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      chore: upgrade deps
+    sha: 07126105b6acab8a4178da4ed2f3fc0dbd55888a
+  - author:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    branch: master
+    committer:
+      email: james.strachan@gmail.com
+      name: James Strachan
+    message: |
+      fix: pollish PR messages
+    sha: 15d96583938dc098d670e28b32875da2fe98a659
+  gitHttpUrl: https://github.com/jenkins-x-plugins/jx-slack
+  gitOwner: jenkins-x-plugins
+  gitRepository: jx-slack
+  name: '{{ .Chart.Name }}'
+  version: 0.0.56
+status: {}
+ 
+{{- end }}
