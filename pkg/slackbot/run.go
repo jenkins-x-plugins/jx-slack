@@ -55,7 +55,7 @@ func (o *Options) Validate() error {
 		}
 
 		if o.GitURL == "" {
-			req, err := variablefinders.FindRequirements(o.GitClient, o.JXClient, o.Namespace, o.Dir)
+			req, err := variablefinders.FindRequirements(o.GitClient, o.JXClient, o.Namespace, o.Dir, "", "")
 			if err != nil {
 				return errors.Wrapf(err, "failed to load requirements from dev environment")
 			}
