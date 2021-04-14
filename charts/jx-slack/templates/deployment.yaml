@@ -36,7 +36,7 @@ spec:
           value: /secrets/git
         - name: GIT_KIND
           value: "{{ .Values.jxRequirements.cluster.gitKind }}"
-        - name: GIT_SERVER
+        - name: GIT_SECRET_SERVER
           value: "{{ .Values.jxRequirements.cluster.gitServer }}"
         - name: GIT_TOKEN
           valueFrom:
