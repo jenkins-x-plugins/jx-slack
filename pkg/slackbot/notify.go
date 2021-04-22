@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/jenkins-x-plugins/jx-changelog/pkg/users"
+	"github.com/jenkins-x-plugins/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/jenkins-x/go-scm/scm"
-	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
 
 	"github.com/pkg/errors"
 

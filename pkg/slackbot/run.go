@@ -1,9 +1,9 @@
 package slackbot
 
 import (
+	"github.com/jenkins-x-plugins/jx-gitops/pkg/sourceconfigs"
+	"github.com/jenkins-x-plugins/jx-gitops/pkg/variablefinders"
 	"github.com/jenkins-x/go-scm/scm/factory"
-	"github.com/jenkins-x/jx-gitops/pkg/sourceconfigs"
-	"github.com/jenkins-x/jx-gitops/pkg/variablefinders"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/cli"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/kube"
