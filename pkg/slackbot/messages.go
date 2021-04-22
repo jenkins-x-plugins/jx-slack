@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jenkins-x-plugins/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/jenkins-x/go-scm/scm"
-	"github.com/jenkins-x/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/giturl"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/scmhelpers"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/stringhelpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/jenkins-x/jx-gitops/pkg/sourceconfigs"
+	"github.com/jenkins-x-plugins/jx-gitops/pkg/sourceconfigs"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/jenkins-x-plugins/jx-changelog/pkg/users"
