@@ -17,7 +17,7 @@ import (
 
 func (o *Options) getPipelineActivities(ctx context.Context, org string, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
 	return o.JXClient.JenkinsV1().PipelineActivities(o.Namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("owner=%s, branch=PR-%d, repository=%s", org, prn, repo),
+		LabelSelector: fmt.Sprintf("lighthouse.jenkins-x.io/refs.org=%s, lighthouse.jenkins-x.io/refs.pull=%d, lighthouse.jenkins-x.io/refs.repo=%s", org, prn, repo),
 	})
 }
 
