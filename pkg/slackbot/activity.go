@@ -3,6 +3,7 @@ package slackbot
 import (
 	"context"
 	"fmt"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/kube/activities"
 	"strconv"
 	"strings"
 
@@ -15,10 +16,29 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func (o *Options) getPipelineActivities(ctx context.Context, org string, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
-	return o.JXClient.JenkinsV1().PipelineActivities(o.Namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("owner=%s, branch=PR-%d, repository=%s", org, prn, repo),
-	})
+func (o *Options) getPipelineActivities(ctx context.Context, owner, repo string, prn int) (*jenkinsv1.PipelineActivityList, error) {
+	branch := fmt.Sprintf("PR-%d", prn)
+
+	list, err := o.JXClient.JenkinsV1().PipelineActivities(o.Namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return list, err
+	}
+
+	results := &jenkinsv1.PipelineActivityList{
+		TypeMeta: list.TypeMeta,
+		ListMeta: list.ListMeta,
+	}
+	if list != nil {
+		for i := range list.Items {
+			r := &list.Items[i]
+			// lets default the properties if missing from the labels
+			activities.DefaultValues(r)
+			if owner == r.Spec.GitOwner && repo == r.Spec.GitRepository && branch == r.Spec.GitBranch {
+				results.Items = append(results.Items, *r)
+			}
+		}
+	}
+	return results, nil
 }
 
 func (o *Options) previousPipelineFailed(activity *jenkinsv1.PipelineActivity) (bool, error) {
