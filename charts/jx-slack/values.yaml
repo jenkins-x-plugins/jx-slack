@@ -3,22 +3,15 @@
 # Declare variables to be passed into your templates.
 replicaCount: 1
 image:
-  repository: jenkinsxio/jx-slack
-  tag: dev
+  repository: gcr.io/jenkinsxio/jx-slack
+  tag: 0.0.61
   pullPolicy: IfNotPresent
-
 nameOverride: jx-slack
-
-podAnnotations: {
-  myannotation: abcd
-}
-
-
+podAnnotations: {myannotation: abcd}
 secrets:
   # if installing outside of Jenkins X then you can supply a token value here
   # usually this is populated via external secrets via 'jx secret edit -f jx-slack' though
   token: ""
-
 resources:
   limits:
     cpu: 100m
@@ -26,65 +19,60 @@ resources:
   requests:
     cpu: 80m
     memory: 128Mi
-
 gitSecretName: tekton-git
-
 terminationGracePeriodSeconds: 10
-
 jx:
   # whether to create a Release CRD when installing charts with Release CRDs included
   releaseCRD: true
-
 jxRequirements:
   cluster:
     gitKind: github
     gitServer: https://github.com
-
 role:
   rules:
-  - apiGroups:
-    - jenkins.io
-    resources:
-    - pipelineactivities
-    verbs:
-    - get
-    - list
-    - watch
-    - patch
-    - update
-  - apiGroups:
-    - jenkins.io
-    resources:
-    - environments
-    verbs:
-    - get
-    - list
-  - apiGroups:
-    - ""
-    resources:
-    - secrets
-    - configmaps
-    - namespaces
-    - serviceaccounts
-    verbs:
-    - get
-    - list
-  - apiGroups:
-    - extensions
-    - "networking.k8s.io"
-    resources:
-    - ingresses
-    verbs:
-    - get
-    - watch
-    - list
-  - apiGroups:
-    - ""
-    resources:
-    - configmaps
-    resourceNames:
-    - "plugins"
-    verbs:
-    - watch
-    - get
-    - update
+    - apiGroups:
+        - jenkins.io
+      resources:
+        - pipelineactivities
+      verbs:
+        - get
+        - list
+        - watch
+        - patch
+        - update
+    - apiGroups:
+        - jenkins.io
+      resources:
+        - environments
+      verbs:
+        - get
+        - list
+    - apiGroups:
+        - ""
+      resources:
+        - secrets
+        - configmaps
+        - namespaces
+        - serviceaccounts
+      verbs:
+        - get
+        - list
+    - apiGroups:
+        - extensions
+        - "networking.k8s.io"
+      resources:
+        - ingresses
+      verbs:
+        - get
+        - watch
+        - list
+    - apiGroups:
+        - ""
+      resources:
+        - configmaps
+      resourceNames:
+        - "plugins"
+      verbs:
+        - watch
+        - get
+        - update
