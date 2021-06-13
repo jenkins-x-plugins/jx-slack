@@ -13,6 +13,7 @@ podAnnotations: {
   myannotation: abcd
 }
 
+affinity: {}
 
 secrets:
   # if installing outside of Jenkins X then you can supply a token value here

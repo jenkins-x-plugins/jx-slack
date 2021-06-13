@@ -19,6 +19,10 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
       {{- end }}
     spec:
+      {{- if .Values.affinity }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+      {{- end }}
       containers:
       - name: slack
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
