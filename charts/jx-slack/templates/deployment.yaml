@@ -42,6 +42,12 @@ spec:
           value: "{{ .Values.jxRequirements.cluster.gitKind }}"
         - name: GIT_SECRET_SERVER
           value: "{{ .Values.jxRequirements.cluster.gitServer }}"
+        - name: GIT_SERVER
+          value: "{{ .Values.jxRequirements.cluster.gitServer }}"
+{{- if eq .Values.jxRequirements.cluster.gitKind "bitbucketcloud" }}
+        - name: GIT_USER
+          value: "{{ .Values.jxRequirements.pipelineUser.username }}"
+{{- end }}
         - name: GIT_TOKEN
           valueFrom:
             secretKeyRef:
