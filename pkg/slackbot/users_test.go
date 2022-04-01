@@ -4,8 +4,6 @@ import (
 	"path"
 	"strings"
 	"testing"
-
-	"github.com/prometheus/common/log"
 )
 
 func TestSlackUserResolver_getSlackEmailFromMapping(t *testing.T) {
@@ -30,34 +28,44 @@ func TestSlackUserResolver_getSlackEmailFromMapping(t *testing.T) {
 		wantErr bool
 		errMsg  string
 	}{
-		{name: "find_from_existing_map",
+		{
+			name:    "find_from_existing_map",
 			fields:  fields{userMappingExist},
 			args:    args{gitUserEmail: "wine@yummy.com", fileLocation: "/foo"},
 			want:    "grapes@yummy.com",
-			wantErr: false},
-		{name: "nil_user_mappings",
+			wantErr: false,
+		},
+		{
+			name:    "nil_user_mappings",
 			fields:  fields{nil},
 			args:    args{gitUserEmail: "wine@yummy.com", fileLocation: "/foo"},
 			want:    "",
 			wantErr: true,
-			errMsg:  "failed to read file"},
-		{name: "nil_user_mappings_but_file_exists",
+			errMsg:  "failed to read file",
+		},
+		{
+			name:    "nil_user_mappings_but_file_exists",
 			fields:  fields{nil},
 			args:    args{gitUserEmail: "wine@yummy.com", fileLocation: path.Join(testData, "user_mapping_file.txt")},
 			want:    "grapes@yummy.com",
-			wantErr: false},
-		{name: "duplicate_git_user",
+			wantErr: false,
+		},
+		{
+			name:    "duplicate_git_user",
 			fields:  fields{nil},
 			args:    args{gitUserEmail: "wine@yummy.com", fileLocation: path.Join(testData, "user_mapping_file_duplicate.txt")},
 			want:    "",
 			wantErr: true,
-			errMsg:  "duplicate mapping found for git user email"},
-		{name: "no_user_mappings",
+			errMsg:  "duplicate mapping found for git user email",
+		},
+		{
+			name:    "no_user_mappings",
 			fields:  fields{nil},
 			args:    args{gitUserEmail: "does_not_exist@yummy.com", fileLocation: path.Join(testData, "user_mapping_file.txt")},
 			want:    "",
 			wantErr: true,
-			errMsg:  "no slack email found for git user email"},
+			errMsg:  "no slack email found for git user email",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -66,7 +74,7 @@ func TestSlackUserResolver_getSlackEmailFromMapping(t *testing.T) {
 			}
 			got, err := r.getSlackEmailFromMapping(tt.args.gitUserEmail, tt.args.fileLocation)
 			if err != nil {
-				log.Infof("err %s", err.Error())
+				t.Logf("err %s", err.Error())
 			}
 
 			if (err != nil) != tt.wantErr {
