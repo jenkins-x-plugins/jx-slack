@@ -16,18 +16,18 @@ func (s byBuildNumber) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func (s byBuildNumber) getBuildNumber(activity jenkinsv1.PipelineActivity) string {
-	details := CreatePipelineDetails(&activity)
+func (s *byBuildNumber) getBuildNumber(activity *jenkinsv1.PipelineActivity) string {
+	details := CreatePipelineDetails(activity)
 	return details.Build
 }
 
 func (s byBuildNumber) Less(i, j int) bool {
-	return s.getBuildNumber(s[i]) < s.getBuildNumber(s[j])
+	return s.getBuildNumber(&s[i]) < s.getBuildNumber(&s[j])
 }
 
 func containsIgnoreCase(s []string, e string) bool {
 	for _, a := range s {
-		if strings.ToLower(a) == strings.ToLower(e) {
+		if strings.EqualFold(a, e) {
 			return true
 		}
 	}
