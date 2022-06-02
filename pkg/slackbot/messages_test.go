@@ -142,8 +142,8 @@ func TestSlackBotOptions_createAttachments(t *testing.T) {
 			assert.NoError(t, err, "failed to read files")
 
 			var attachments []slack.Attachment
-			for _, step := range act.Spec.Steps {
-				stepAttachments := o.createAttachments(act, &step)
+			for step := range act.Spec.Steps {
+				stepAttachments := o.createAttachments(act, &act.Spec.Steps[step])
 				if len(stepAttachments) > 0 {
 					attachments = append(attachments, stepAttachments...)
 				}
@@ -177,12 +177,9 @@ func getPipelineActivity(filename string) (*jenkinsv1.PipelineActivity, error) {
 }
 
 func TestIsUserPipelineStep(t *testing.T) {
-	type args struct {
-		name string
-	}
 	tests := []struct {
 		name string
-		args args
+		args string
 		want bool
 	}{
 		{name: "build", want: true},

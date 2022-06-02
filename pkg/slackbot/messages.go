@@ -127,7 +127,7 @@ func (o *Options) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) err
 	if latestActivity != nil {
 		// TODO Some activities could be missing the labels that identify them properly,
 		// in that case just display what we have?
-		latestBuildNumber, err = strconv.Atoi(CreatePipelineDetails(latestActivity).Build)
+		latestBuildNumber, _ = strconv.Atoi(CreatePipelineDetails(latestActivity).Build)
 	}
 	if oldestActivity == nil {
 		// TODO Some activities could be missing the labels that identify them so what do we do?
@@ -181,28 +181,10 @@ func (o *Options) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) err
 }
 
 func (o *Options) isLgtmRepo(_ *jenkinsv1.PipelineActivity) (bool, error) {
-	/*
-		options := prow.Options{
-			KubeClient: o.KubeClient,
-			NS:         o.Namespace,
-		}
-		cfg, _, err := options.GetProwConfig()
-		if err != nil {
-			return false, errors.Wrapf(err, "getting prow config")
-		}
-		pipeDetails := CreatePipelineDetails(activity)
-		for _, query := range cfg.Keeper.Queries {
-			if query.ForRepo(pipeDetails.GitOwner, pipeDetails.GitRepository) {
-				if util.Contains(query.Labels, "lgtm") {
-					return true, nil
-				}
-			}
-		}
-	*/
 	return false, nil
 }
 
-func (o *Options) findPipelineActivities(ctx context.Context, activity *jenkinsv1.PipelineActivity) (oldest *jenkinsv1.PipelineActivity, latest *jenkinsv1.PipelineActivity, all []jenkinsv1.PipelineActivity, err error) {
+func (o *Options) findPipelineActivities(ctx context.Context, activity *jenkinsv1.PipelineActivity) (oldest, latest *jenkinsv1.PipelineActivity, all []jenkinsv1.PipelineActivity, err error) {
 	// This is the trigger activity. Working out the correct slack message is a bit tricky,
 	// as we have a 1:n mapping between PRs and PipelineActivities (which store the message info).
 	// The algorithm in use just picks the earliest pipeline activity as determined by build number
@@ -221,13 +203,12 @@ func (o *Options) findPipelineActivities(ctx context.Context, activity *jenkinsv
 	if len(acts.Items) > 0 {
 		sort.Sort(byBuildNumber(acts.Items))
 		return &acts.Items[0], &acts.Items[len(acts.Items)-1], acts.Items, nil
-	} else {
-		log.Logger().Warnf("No pipeline activities exist for %s/%s/pr-%d", pipelineDetails.GitOwner, pipelineDetails.GitRepository, prn)
 	}
+	log.Logger().Warnf("No pipeline activities exist for %s/%s/pr-%d", pipelineDetails.GitOwner, pipelineDetails.GitRepository, prn)
 	return nil, nil, nil, nil
 }
 
-func getStatus(overrideStatus *Status, defaultStatus *Status) *Status {
+func getStatus(overrideStatus, defaultStatus *Status) *Status {
 	if overrideStatus == nil {
 		return defaultStatus
 	}
@@ -364,7 +345,8 @@ func (o *Options) createReviewersMessage(activity *jenkinsv1.PipelineActivity, n
 }
 
 func getLastUpdatedTime(pr *scm.PullRequest, activity *jenkinsv1.PipelineActivity) int64 {
-	updatedEpochTime := int64(-1)
+	var updatedEpochTime int64
+
 	if pr != nil {
 		updatedEpochTime = pr.Updated.Unix()
 	} else {
@@ -440,11 +422,8 @@ func (o *Options) createPipelineMessage(activity *jenkinsv1.PipelineActivity, pr
 
 	var attachments []slack.Attachment
 	var actions []slack.AttachmentAction
-	versionPrefix := spec.Version
-	if versionPrefix != "" {
-		versionPrefix += " "
-	}
 	var fallback []string
+
 	if format.ShowRepository && spec.GitURL != "" {
 		fallback = append(fallback, "Repo: "+spec.GitURL)
 		actions = append(actions, slack.AttachmentAction{
@@ -466,7 +445,7 @@ func (o *Options) createPipelineMessage(activity *jenkinsv1.PipelineActivity, pr
 		actions = append(actions, slack.AttachmentAction{
 			Type: "button",
 			Text: "Build Logs",
-			URL:  strings.Replace(spec.BuildLogsURL, "gs://", "https://storage.cloud.google.com/", -1),
+			URL:  strings.ReplaceAll(spec.BuildLogsURL, "gs://", "https://storage.cloud.google.com/"),
 		})
 	}
 	if format.ShowReleaseNotes && spec.ReleaseNotesURL != "" {
@@ -492,8 +471,8 @@ func (o *Options) createPipelineMessage(activity *jenkinsv1.PipelineActivity, pr
 	attachments = append(attachments, attachment)
 
 	if format.ShowSteps {
-		for _, step := range spec.Steps {
-			stepAttachments := o.createAttachments(activity, &step)
+		for step := range spec.Steps {
+			stepAttachments := o.createAttachments(activity, &spec.Steps[step])
 			if len(stepAttachments) > 0 {
 				attachments = append(attachments, stepAttachments...)
 			}
@@ -503,18 +482,6 @@ func (o *Options) createPipelineMessage(activity *jenkinsv1.PipelineActivity, pr
 		slack.MsgOptionAttachments(attachments...),
 	}
 	return options, createIfMissing, nil
-}
-
-func (o *Options) getSlackUserID(gitUser *scm.User, resolver *users.GitUserResolver) (string, error) {
-	if gitUser == nil {
-		return "", fmt.Errorf("user cannot be nil")
-	}
-	user, err := resolver.Resolve(gitUser)
-	if err != nil {
-		return "", err
-	}
-
-	return o.SlackUserResolver.SlackUserLogin(user)
 }
 
 // getPullRequestNumber extracts the pull request number from the activity or returns 0 if it's not a pull request
@@ -532,7 +499,7 @@ func (o *Options) postMessage(channel string, directMessage bool, messageType st
 	createIfMissing bool) error {
 	timestamp := o.FakeTimestamp
 	messageRef := o.findMessageRefViaAnnotations(activity, channel, messageType)
-	channelId := channel
+	channelID := channel
 
 	if messageRef == nil {
 		// couldn't find the message ref on a Pipeline Activity so attempt to find the message ref in memory
@@ -540,14 +507,14 @@ func (o *Options) postMessage(channel string, directMessage bool, messageType st
 	}
 	if messageRef != nil {
 		timestamp = messageRef.Timestamp
-		channelId = messageRef.ChannelID
+		channelID = messageRef.ChannelID
 	}
 
 	if o.Timestamps == nil {
 		o.Timestamps = map[string]map[string]*MessageReference{}
 	}
 	if _, ok := o.Timestamps[channel]; !ok {
-		o.Timestamps[channel] = make(map[string]*MessageReference, 0)
+		o.Timestamps[channel] = make(map[string]*MessageReference)
 	}
 
 	if directMessage {
@@ -557,9 +524,9 @@ func (o *Options) postMessage(channel string, directMessage bool, messageType st
 			},
 		})
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("(open converation channelId: %s)", channelId))
+			return errors.Wrap(err, fmt.Sprintf("(open converation channelID: %s)", channelID))
 		}
-		channelId = channel.ID
+		channelID = channel.ID
 	}
 	post := true
 	if timestamp != "" {
@@ -576,17 +543,17 @@ func (o *Options) postMessage(channel string, directMessage bool, messageType st
 	}
 	if post {
 		ctx := context.TODO()
-
-		channelId, timestamp, _, err := o.SlackClient.SendMessage(channelId, options...)
+		// nolint
+		channelID, timestamp, _, err := o.SlackClient.SendMessage(channelID, options...)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("(post channelId: %s, timestamp: %s)", channelId, timestamp))
+			return errors.Wrap(err, fmt.Sprintf("(post channelID: %s, timestamp: %s)", channelID, timestamp))
 		}
 		o.Timestamps[channel][activity.Name] = &MessageReference{
-			ChannelID: channelId,
+			ChannelID: channelID,
 			Timestamp: timestamp,
 		}
 		key := annotationKey(channel, messageType)
-		value := annotationValue(channelId, timestamp)
+		value := annotationValue(channelID, timestamp)
 		if all == nil {
 			if activity.Annotations[key] != value {
 				err = o.annotatePipelineActivity(ctx, activity, key, value)
@@ -595,9 +562,9 @@ func (o *Options) postMessage(channel string, directMessage bool, messageType st
 				}
 			}
 		} else {
-			for _, a := range all {
-				if a.Annotations[key] != value {
-					err = o.annotatePipelineActivity(ctx, &a, key, value)
+			for i := range all {
+				if all[i].Annotations[key] != value {
+					err = o.annotatePipelineActivity(ctx, &all[i], key, value)
 					if err != nil {
 						return err
 					}
@@ -608,7 +575,7 @@ func (o *Options) postMessage(channel string, directMessage bool, messageType st
 	return nil
 }
 
-//getPullRequest will return the PullRequestInfo for the activity, or nil if it's not a pull request
+// getPullRequest will return the PullRequestInfo for the activity, or nil if it's not a pull request
 func (o *Options) getPullRequest(ctx context.Context, activity *jenkinsv1.PipelineActivity, prn int) (pr *scm.PullRequest, resolver *users.GitUserResolver, err error) {
 	if activity.Spec.GitURL == "" {
 		return nil, nil, fmt.Errorf("no GitURL on PipelineActivity %s", activity.Name)
@@ -647,16 +614,15 @@ func (o *Options) findMessageRefViaAnnotations(activity *jenkinsv1.PipelineActiv
 	return nil
 }
 
-func annotationKey(channel string, messageType string) string {
+func annotationKey(channel, messageType string) string {
 	return fmt.Sprintf("%s-%s/%s", SlackAnnotationPrefix, messageType, strings.TrimPrefix(channel, "#"))
 }
 
-func annotationValue(channelId string, timestamp string) string {
-	return fmt.Sprintf("%s/%s", channelId, timestamp)
+func annotationValue(channelID, timestamp string) string {
+	return fmt.Sprintf("%s/%s", channelID, timestamp)
 }
 
-func (o *Options) createAttachments(activity *jenkinsv1.PipelineActivity,
-	step *jenkinsv1.PipelineActivityStep) []slack.Attachment {
+func (o *Options) createAttachments(activity *jenkinsv1.PipelineActivity, step *jenkinsv1.PipelineActivityStep) []slack.Attachment {
 	stage := step.Stage
 	promote := step.Promote
 	if stage != nil {
@@ -703,14 +669,10 @@ func isUserPipelineStep(name string) bool {
 	ss := strings.Fields(name)
 	firstWord := ss[0]
 
-	if containsIgnoreCase(knownPipelineStageTypes, firstWord) {
-		return true
-	}
-	return false
+	return containsIgnoreCase(knownPipelineStageTypes, firstWord)
 }
 
-func (o *Options) createStepAttachment(step jenkinsv1.CoreActivityStep, name string, description string,
-	iconUrl string) slack.Attachment {
+func (o *Options) createStepAttachment(step jenkinsv1.CoreActivityStep, name, description, iconURL string) slack.Attachment {
 	text := step.Description
 	if description != "" {
 		if text == "" {
@@ -734,7 +696,7 @@ func (o *Options) createStepAttachment(step jenkinsv1.CoreActivityStep, name str
 
 	return slack.Attachment{
 		Text:       textMessage,
-		FooterIcon: iconUrl,
+		FooterIcon: iconURL,
 		MarkdownIn: []string{"fields"},
 		Color:      attachmentColor(stepStatus),
 	}
@@ -749,8 +711,8 @@ func (o *Options) createPromoteAttachments(activity *jenkinsv1.PipelineActivity,
 	pullRequest := parent.PullRequest
 	update := parent.Update
 	if pullRequest != nil {
-		iconUrl := pullRequestIcon(pullRequest)
-		attachments = append(attachments, o.createStepAttachment(pullRequest.CoreActivityStep, "PR", describePromotePullRequest(activity, pullRequest), iconUrl))
+		iconURL := pullRequestIcon(pullRequest)
+		attachments = append(attachments, o.createStepAttachment(pullRequest.CoreActivityStep, "PR", describePromotePullRequest(activity, pullRequest), iconURL))
 	}
 	if update != nil {
 		attachments = append(attachments, o.createStepAttachment(update.CoreActivityStep, "update", describePromoteUpdate(update), ""))
@@ -762,7 +724,7 @@ func (o *Options) createPromoteAttachments(activity *jenkinsv1.PipelineActivity,
 	return attachments
 }
 
-func (o *Options) annotatePipelineActivity(ctx context.Context, activity *jenkinsv1.PipelineActivity, key string, value string) error {
+func (o *Options) annotatePipelineActivity(ctx context.Context, activity *jenkinsv1.PipelineActivity, key, value string) error {
 	newActivity := activity.DeepCopy()
 	if newActivity.Annotations == nil {
 		newActivity.Annotations = make(map[string]string)
@@ -788,8 +750,8 @@ func describePromotePullRequest(activity *jenkinsv1.PipelineActivity, promote *j
 	}
 	if promote.MergeCommitSHA != "" {
 		// lets not use a URL
-		gitUrl := activity.Spec.GitURL
-		description += " merged " + mergeShaText(gitUrl, promote.MergeCommitSHA)
+		gitURL := activity.Spec.GitURL
+		description += " merged " + mergeShaText(gitURL, promote.MergeCommitSHA)
 	}
 	return description
 }
@@ -900,24 +862,23 @@ func channelName(channel string) string {
 	return channel
 }
 
-func link(text string, url string) string {
+func link(text, url string) string {
 	if url != "" {
 		if text == "" {
 			text = url
 		}
 		return "<" + url + "|" + text + ">"
-	} else {
-		return text
 	}
+	return text
 }
 
 func mergeShaText(gitURL, sha string) string {
 	short := sha[0:7]
-	cleanUrl := strings.TrimSuffix(gitURL, ".git")
-	if cleanUrl != "" {
-		cleanUrl = stringhelpers.UrlJoin(cleanUrl, "commit", sha)
+	cleanURL := strings.TrimSuffix(gitURL, ".git")
+	if cleanURL != "" {
+		cleanURL = stringhelpers.UrlJoin(cleanURL, "commit", sha)
 	}
-	return link(short, cleanUrl)
+	return link(short, cleanURL)
 }
 
 func describePromoteUpdate(promote *jenkinsv1.PromoteUpdateStep) string {
@@ -1012,14 +973,6 @@ func pipelineStatus(activity *jenkinsv1.PipelineActivity) jenkinsv1.ActivityStat
 }
 
 func pipelineIcon(statusType jenkinsv1.ActivityStatusType) string {
-	switch statusType {
-	case jenkinsv1.ActivityStatusTypeFailed, jenkinsv1.ActivityStatusTypeError:
-		return ""
-	case jenkinsv1.ActivityStatusTypeSucceeded:
-		return ""
-	case jenkinsv1.ActivityStatusTypeRunning:
-		return ""
-	}
 	return ""
 }
 

@@ -63,10 +63,6 @@ func (r *SlackUserResolver) SlackUserLogin(user *jenkinsv1.UserDetails) (string,
 			ID:       slackUser.ID,
 		})
 
-		// TODO
-		/*
-			_, err = r.JXClient.JenkinsV1().Users(r.Namespace).Update(user)
-		*/
 		return slackUser.ID, nil
 	}
 	return "", nil
@@ -74,7 +70,7 @@ func (r *SlackUserResolver) SlackUserLogin(user *jenkinsv1.UserDetails) (string,
 
 // SlackProviderKey returns the provider key for this SlackUserResolver
 func (r *SlackUserResolver) SlackProviderKey() string {
-	return fmt.Sprintf("slack.apps.jenkins-x.com/userid")
+	return "slack.apps.jenkins-x.com/userid"
 }
 
 func (r *SlackUserResolver) getSlackEmailFromMapping(gitUserEmail, fileLocation string) (string, error) {
