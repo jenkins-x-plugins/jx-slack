@@ -3,9 +3,10 @@ package slackbot
 import (
 	"context"
 	"fmt"
-	"github.com/jenkins-x/jx-helpers/v3/pkg/kube/activities"
 	"strconv"
 	"strings"
+
+	"github.com/jenkins-x/jx-helpers/v3/pkg/kube/activities"
 
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 	informers "github.com/jenkins-x/jx-api/v4/pkg/client/informers/externalversions"
@@ -24,11 +25,12 @@ func (o *Options) getPipelineActivities(ctx context.Context, owner, repo string,
 		return list, err
 	}
 
-	results := &jenkinsv1.PipelineActivityList{
-		TypeMeta: list.TypeMeta,
-		ListMeta: list.ListMeta,
-	}
 	if list != nil {
+		results := &jenkinsv1.PipelineActivityList{
+			TypeMeta: list.TypeMeta,
+			ListMeta: list.ListMeta,
+		}
+
 		for i := range list.Items {
 			r := &list.Items[i]
 			// lets default the properties if missing from the labels
@@ -37,8 +39,9 @@ func (o *Options) getPipelineActivities(ctx context.Context, owner, repo string,
 				results.Items = append(results.Items, *r)
 			}
 		}
+		return results, nil
 	}
-	return results, nil
+	return nil, nil
 }
 
 func (o *Options) previousPipelineFailed(activity *jenkinsv1.PipelineActivity) (bool, error) {
@@ -95,7 +98,6 @@ func (o *Options) WatchActivities() chan struct{} {
 		UpdateFunc: o.onUpdate,
 	})
 
-	//go informer.Run(stopper)
 	informer.Run(stopper)
 	return stopper
 }
@@ -117,6 +119,6 @@ func (o *Options) onObj(obj interface{}) {
 	}
 }
 
-func (o Options) onUpdate(_ interface{}, newObj interface{}) {
+func (o *Options) onUpdate(_, newObj interface{}) {
 	o.onObj(newObj)
 }

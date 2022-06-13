@@ -77,7 +77,7 @@ func (f *FakeSlack) GetUserByEmail(email string) (*slack.User, error) {
 }
 
 // AssertMessageCount asserts the message count for the given channel
-func (f *FakeSlack) AssertMessageCount(t *testing.T, channel string, expectedCount int, expectedMessageDir string, expectedMessagePrefix string, generateTestOutput bool, message string) []Attachment {
+func (f *FakeSlack) AssertMessageCount(t *testing.T, channel string, expectedCount int, expectedMessageDir, expectedMessagePrefix string, generateTestOutput bool, message string) []Attachment {
 	if f.Messages == nil {
 		f.Messages = map[string][]Message{}
 	}
@@ -100,8 +100,6 @@ func (f *FakeSlack) AssertMessageCount(t *testing.T, channel string, expectedCou
 		require.NoError(t, err, "failed to render message %d for %s", i, message)
 		attachmentsJSON := values.Get("attachments")
 		require.NotEmpty(t, attachmentsJSON, "no attachments JSON found for message %d of %s", i, message)
-
-		//t.Logf("got message: %s", attachmentsJSON)
 
 		err = json.Unmarshal([]byte(attachmentsJSON), &attachments)
 		require.NoError(t, err, "failed to parse attachments JSON %s for message %d of %s", attachmentsJSON, i, message)
@@ -129,7 +127,10 @@ func (f *FakeSlack) AssertMessageCount(t *testing.T, channel string, expectedCou
 		if generateTestOutput {
 			t.Logf("generated test output %s\n", path)
 		} else {
-			testhelpers.AssertEqualFileText(t, filepath.Join(expectedMessageDir, fileName), path)
+			err := testhelpers.AssertEqualFileText(t, filepath.Join(expectedMessageDir, fileName), path)
+			if err != nil {
+				t.Logf("generated test error %s\n", err)
+			}
 		}
 	}
 	return attachments
