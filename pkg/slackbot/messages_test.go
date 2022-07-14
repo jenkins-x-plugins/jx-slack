@@ -1,7 +1,7 @@
 package slackbot
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"testing"
@@ -26,10 +26,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	// generateTestOutput enable to regenerate the expected output
-	generateTestOutput = false
-)
+// generateTestOutput enable to regenerate the expected output
+var generateTestOutput = false
 
 func TestPipelineMessages(t *testing.T) {
 	ns := "jx"
@@ -157,14 +155,13 @@ func TestSlackBotOptions_createAttachments(t *testing.T) {
 			for _, i2 := range attachments {
 				log.Logger().Infof("%s", i2.Text)
 			}
-
 		})
 	}
 }
 
 func getPipelineActivity(filename string) (*jenkinsv1.PipelineActivity, error) {
 	testData := path.Join("test_data", "bot")
-	testfile, err := ioutil.ReadFile(path.Join(testData, filename))
+	testfile, err := os.ReadFile(path.Join(testData, filename))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read file %s", path.Join(testData, filename))
 	}
