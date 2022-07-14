@@ -648,13 +648,14 @@ func (o *Options) createStageAttachments(activity *jenkinsv1.PipelineActivity,
 	}
 
 	attachments := []slack.Attachment{
-		o.createStepAttachment(stage.CoreActivityStep, name, "", ""),
+		o.createStepAttachment(&stage.CoreActivityStep, name, "", ""),
 	}
 	if stage.CoreActivityStep.Name != "meta pipeline" {
-		for _, step := range stage.Steps {
+		for k := range stage.Steps {
+			step := stage.Steps[k]
 			// filter out tekton generated steps
 			if isUserPipelineStep(step.Name) {
-				attachments = append(attachments, o.createStepAttachment(step, "", "", ""))
+				attachments = append(attachments, o.createStepAttachment(&step, "", "", ""))
 			}
 		}
 	}
@@ -672,7 +673,7 @@ func isUserPipelineStep(name string) bool {
 	return containsIgnoreCase(knownPipelineStageTypes, firstWord)
 }
 
-func (o *Options) createStepAttachment(step jenkinsv1.CoreActivityStep, name, description, iconURL string) slack.Attachment {
+func (o *Options) createStepAttachment(step *jenkinsv1.CoreActivityStep, name, description, iconURL string) slack.Attachment {
 	text := step.Description
 	if description != "" {
 		if text == "" {
@@ -705,21 +706,21 @@ func (o *Options) createStepAttachment(step jenkinsv1.CoreActivityStep, name, de
 func (o *Options) createPromoteAttachments(activity *jenkinsv1.PipelineActivity, parent *jenkinsv1.PromoteActivityStep) []slack.Attachment {
 	envName := strings.Title(parent.Environment)
 	attachments := []slack.Attachment{
-		o.createStepAttachment(parent.CoreActivityStep, "promote to *"+envName+"*", "", ""),
+		o.createStepAttachment(&parent.CoreActivityStep, "promote to *"+envName+"*", "", ""),
 	}
 
 	pullRequest := parent.PullRequest
 	update := parent.Update
 	if pullRequest != nil {
 		iconURL := pullRequestIcon(pullRequest)
-		attachments = append(attachments, o.createStepAttachment(pullRequest.CoreActivityStep, "PR", describePromotePullRequest(activity, pullRequest), iconURL))
+		attachments = append(attachments, o.createStepAttachment(&pullRequest.CoreActivityStep, "PR", describePromotePullRequest(activity, pullRequest), iconURL))
 	}
 	if update != nil {
-		attachments = append(attachments, o.createStepAttachment(update.CoreActivityStep, "update", describePromoteUpdate(update), ""))
+		attachments = append(attachments, o.createStepAttachment(&update.CoreActivityStep, "update", describePromoteUpdate(update), ""))
 	}
 	appURL := parent.ApplicationURL
 	if appURL != "" {
-		attachments = append(attachments, o.createStepAttachment(update.CoreActivityStep, ":star: application now in "+link(envName, appURL), "", ""))
+		attachments = append(attachments, o.createStepAttachment(&update.CoreActivityStep, ":star: application now in "+link(envName, appURL), "", ""))
 	}
 	return attachments
 }

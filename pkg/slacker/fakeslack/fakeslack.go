@@ -121,7 +121,7 @@ func (f *FakeSlack) AssertMessageCount(t *testing.T, channel string, expectedCou
 		fileName := expectedMessagePrefix + "-" + strconv.Itoa(i+1) + ".json"
 		path := filepath.Join(dir, fileName)
 
-		err = ioutil.WriteFile(path, []byte(attachmentsJSON), files.DefaultFileWritePermissions)
+		err = os.WriteFile(path, []byte(attachmentsJSON), files.DefaultFileWritePermissions)
 		require.NoError(t, err, "failed to save file %s", path)
 
 		if generateTestOutput {

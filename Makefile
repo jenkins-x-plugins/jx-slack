@@ -12,7 +12,7 @@ ORG := jenkins-x-labs
 ORG_REPO := $(ORG)/$(NAME)
 RELEASE_ORG_REPO := $(ORG_REPO)
 ROOT_PACKAGE := github.com/$(ORG_REPO)
-GO_VERSION := 1.17.9
+GO_VERSION := 1.17.11
 GO_DEPENDENCIES := $(call rwildcard,pkg/,*.go) $(call rwildcard,cmd/jx-labs/,*.go)
 
 BRANCH     := $(shell git rev-parse --abbrev-ref HEAD 2> /dev/null  || echo 'unknown')
@@ -166,7 +166,6 @@ importfmt: get-fmt-deps
 lint: ## Lint the code
 	./hack/gofmt.sh
 	./hack/linter.sh
-	./hack/generate.sh
 
 .PHONY: all
 all: fmt build lint test
