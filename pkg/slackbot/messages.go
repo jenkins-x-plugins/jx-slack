@@ -83,9 +83,14 @@ func (o *Options) getSlackConfigForPipeline(activity *jenkinsv1.PipelineActivity
 	gitServer := ""
 	owner := ps.GitOwner
 	repoName := ps.GitRepository
+	var slack *v1alpha1.SlackNotify
 
-	repoConfig := sourceconfigs.GetOrCreateRepositoryFor(o.SourceConfigs, gitServer, owner, repoName)
-	return repoConfig.Slack
+	repoConfig := sourceconfigs.GetRepositoryFor(o.SourceConfigs, gitServer, owner, repoName)
+	if repoConfig != nil {
+		slack = repoConfig.Slack
+	}
+
+	return slack
 }
 
 func (o *Options) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) error {
@@ -103,6 +108,7 @@ func (o *Options) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) err
 	ctx := context.TODO()
 	cfg := o.getSlackConfigForPipeline(activity)
 	if cfg == nil || cfg.Channel == "" {
+		log.Logger().Infof("no slack configuration for %s", activity.Name)
 		return nil
 	}
 
