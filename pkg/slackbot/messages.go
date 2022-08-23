@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+
 	"github.com/jenkins-x-plugins/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/giturl"
@@ -83,9 +86,14 @@ func (o *Options) getSlackConfigForPipeline(activity *jenkinsv1.PipelineActivity
 	gitServer := ""
 	owner := ps.GitOwner
 	repoName := ps.GitRepository
+	var slack *v1alpha1.SlackNotify
 
-	repoConfig := sourceconfigs.GetOrCreateRepositoryFor(o.SourceConfigs, gitServer, owner, repoName)
-	return repoConfig.Slack
+	repoConfig := sourceconfigs.GetRepositoryFor(o.SourceConfigs, gitServer, owner, repoName)
+	if repoConfig != nil {
+		slack = repoConfig.Slack
+	}
+
+	return slack
 }
 
 func (o *Options) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) error {
@@ -103,6 +111,7 @@ func (o *Options) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) err
 	ctx := context.TODO()
 	cfg := o.getSlackConfigForPipeline(activity)
 	if cfg == nil || cfg.Channel == "" {
+		log.Logger().Infof("no slack configuration for %s", activity.Name)
 		return nil
 	}
 
@@ -682,7 +691,7 @@ func (o *Options) createStepAttachment(step *jenkinsv1.CoreActivityStep, name, d
 			text += description
 		}
 	}
-	textName := strings.Title(name)
+	textName := cases.Title(language.Und).String(name)
 	if textName == "" {
 		textName = step.Name
 	}
@@ -704,7 +713,7 @@ func (o *Options) createStepAttachment(step *jenkinsv1.CoreActivityStep, name, d
 }
 
 func (o *Options) createPromoteAttachments(activity *jenkinsv1.PipelineActivity, parent *jenkinsv1.PromoteActivityStep) []slack.Attachment {
-	envName := strings.Title(parent.Environment)
+	envName := cases.Title(language.Und).String(parent.Environment)
 	attachments := []slack.Attachment{
 		o.createStepAttachment(&parent.CoreActivityStep, "promote to *"+envName+"*", "", ""),
 	}
@@ -896,7 +905,7 @@ func describePromoteUpdate(promote *jenkinsv1.PromoteUpdateStep) string {
 }
 
 func pullRequestStatusString(text string) string {
-	title := strings.Title(text)
+	title := cases.Title(language.Und).String(text)
 	switch text {
 	case "success":
 		return title
