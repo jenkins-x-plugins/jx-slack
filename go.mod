@@ -3,7 +3,7 @@ module github.com/jenkins-x-plugins/jx-slack
 require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/jenkins-x-plugins/jx-changelog v0.2.0
-	github.com/jenkins-x-plugins/jx-gitops v0.7.28
+	github.com/jenkins-x-plugins/jx-gitops v0.8.1
 	github.com/jenkins-x/go-scm v1.11.18
 	github.com/jenkins-x/jx-api/v4 v4.5.1
 	github.com/jenkins-x/jx-helpers/v3 v3.4.0
@@ -14,6 +14,7 @@ require (
 	github.com/slack-go/slack v0.10.2
 	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.8.0
+	golang.org/x/text v0.3.7
 	k8s.io/apimachinery v0.21.4
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 )
@@ -80,7 +81,6 @@ require (
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
 	golang.org/x/sys v0.0.0-20220207234003-57398862261d // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
