@@ -9,3 +9,15 @@ work
 bin/
 hack/code-generator
 build/
+
+# syft
+bin/syft
+
+# image tar files
+image.tar
+
+# docker credential binaries
+docker-credential-*
+
+# sbom json created by syft
+sbom.json
