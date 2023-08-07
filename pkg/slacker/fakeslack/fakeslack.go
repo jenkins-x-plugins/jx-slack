@@ -2,7 +2,6 @@ package fakeslack
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -90,7 +89,7 @@ func (f *FakeSlack) AssertMessageCount(t *testing.T, channel string, expectedCou
 		err = os.MkdirAll(dir, files.DefaultDirWritePermissions)
 		require.NoError(t, err, "failed to create dir %s", dir)
 	} else {
-		dir, err = ioutil.TempDir("", "")
+		dir, err = os.MkdirTemp("", "")
 		require.NoError(t, err, "failed to create a temp dir")
 	}
 	var attachments []Attachment
