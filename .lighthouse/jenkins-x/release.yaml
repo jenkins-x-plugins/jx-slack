@@ -7,6 +7,7 @@ spec:
   pipelineSpec:
     tasks:
     - name: chart
+      timeout: 2h
       resources: {}
       taskSpec:
         metadata: {}
@@ -45,5 +46,5 @@ spec:
         - name: promote-release
           resources: {}
   serviceAccountName: tekton-bot
-  timeout: 1h3m0s
+  timeout: 2h
 status: {}
