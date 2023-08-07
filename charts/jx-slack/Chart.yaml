@@ -3,7 +3,8 @@ description: A Slack bot for Jenkins X
 icon: https://raw.githubusercontent.com/jenkins-x/jenkins-x-website/master/images/logo/jenkinsx-icon-color.svg
 home: https://github.com/jenkins-x-plugins/jx-slack
 name: jx-slack
-version: 0.0.1-SNAPSHOT
-appVersion: latest
+version: 0.2.2
+appVersion: 0.2.2
 sources:
-- https://github.com/jenkins-x-plugins/jx-slack
+  - https://github.com/jenkins-x-plugins/jx-slack
+  - https://github.com/jenkins-x-plugins/jx-slack.git
