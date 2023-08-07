@@ -109,4 +109,4 @@ replace (
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20220310132336-3f90b8c54bbb
 )
 
-go 1.18
+go 1.19
