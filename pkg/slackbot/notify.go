@@ -8,8 +8,6 @@ import (
 	"github.com/jenkins-x-plugins/jx-gitops/pkg/apis/gitops/v1alpha1"
 	"github.com/jenkins-x/go-scm/scm"
 
-	"github.com/pkg/errors"
-
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 )
@@ -45,7 +43,7 @@ func (o *Options) NotifyPipeline(activity *jenkinsv1.PipelineActivity, cfg *v1al
 	var resolver *users.GitUserResolver
 	pr, resolver, err = o.getPullRequest(context.TODO(), activity, prn)
 	if err != nil {
-		return false, nil, nil, errors.WithStack(err)
+		return false, nil, nil, err
 	}
 
 	if pr == nil {

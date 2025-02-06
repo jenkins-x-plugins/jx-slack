@@ -24,8 +24,6 @@ import (
 
 	"github.com/jenkins-x-plugins/jx-changelog/pkg/users"
 
-	"github.com/pkg/errors"
-
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	"github.com/slack-go/slack"
@@ -44,7 +42,7 @@ func (o *Options) PipelineMessage(activity *jenkinsv1.PipelineActivity) error {
 	channel := channelName(cfg.Channel)
 	enabled, pullRequest, resolver, err := o.NotifyPipeline(activity, cfg)
 	if err != nil {
-		return errors.Wrapf(errors.WithStack(err), "failed to verify if message should be sent")
+		return fmt.Errorf("failed to verify if message should be sent: %w", err)
 	}
 	if !enabled {
 		return nil
@@ -57,8 +55,9 @@ func (o *Options) PipelineMessage(activity *jenkinsv1.PipelineActivity) error {
 	if cfg.Channel != "" {
 		err = o.postMessage(channel, false, pipelineMessageType, activity, nil, options, createIfMissing)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("error posting cfg for %s to channel %s", activity.Name,
-				channel))
+			return fmt.Errorf("error posting cfg for %s to channel %s: %w", activity.Name,
+				channel, err)
+
 		}
 		log.Logger().Infof("Channel message sent to %s\n", cfg.Channel)
 	}
@@ -66,13 +65,14 @@ func (o *Options) PipelineMessage(activity *jenkinsv1.PipelineActivity) error {
 		if pullRequest != nil {
 			id, err := o.resolveGitUserToSlackUser(&pullRequest.Author, resolver)
 			if err != nil {
-				return errors.Wrapf(err, "Cannot resolve Slack ID for Git user %s", pullRequest.Author.Name)
+				return fmt.Errorf("Cannot resolve Slack ID for Git user %s: %w", pullRequest.Author.Name, err)
 			}
 			if id != "" {
 				err = o.postMessage(id, true, pipelineMessageType, activity, nil, options, createIfMissing)
 				if err != nil {
-					return errors.Wrap(err, fmt.Sprintf("error sending direct pipeline for %s to %s", activity.Name,
-						id))
+					return fmt.Errorf("error sending direct pipeline for %s to %s: %w", activity.Name,
+						id, err)
+
 				}
 				log.Logger().Infof("Direct message sent to %s\n", pullRequest.Author.Name)
 			}
@@ -103,7 +103,7 @@ func (o *Options) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) err
 
 	prn, _, err := getPullRequestNumber(activity)
 	if err != nil {
-		return errors.Wrapf(err, "getting pull request number %s", activity.Name)
+		return fmt.Errorf("getting pull request number %s: %w", activity.Name, err)
 	}
 	if prn <= 0 {
 		return nil
@@ -117,7 +117,7 @@ func (o *Options) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) err
 
 	enabled, pullRequest, resolver, err := o.NotifyPipeline(activity, cfg)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	if !enabled {
 		return nil
@@ -162,9 +162,10 @@ func (o *Options) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) err
 				err := o.postMessage(channel, false, pullRequestReviewMessageType, oldestActivity,
 					all, options, createIfMissing)
 				if err != nil {
-					return errors.Wrap(err, fmt.Sprintf("error posting PR review request for %s to channel %s",
+					return fmt.Errorf("error posting PR review request for %s to channel %s: %w",
 						activity.Name,
-						channel))
+						channel, err)
+
 				}
 			}
 			if cfg.DirectMessage.ToBool() && cfg.NotifyReviewers.ToBool() {
@@ -173,9 +174,10 @@ func (o *Options) ReviewRequestMessage(activity *jenkinsv1.PipelineActivity) err
 						err = o.postMessage(user.ID, true, pullRequestReviewMessageType, oldestActivity,
 							all, options, createIfMissing)
 						if err != nil {
-							return errors.Wrap(err, fmt.Sprintf("error sending direct PR review request for %s to %s",
+							return fmt.Errorf("error sending direct PR review request for %s to %s: %w",
 								activity.Name,
-								user.ID))
+								user.ID, err)
+
 						}
 					}
 				}
@@ -228,7 +230,7 @@ func getStatus(overrideStatus, defaultStatus *Status) *Status {
 func (o *Options) createReviewersMessage(activity *jenkinsv1.PipelineActivity, notifyReviewers bool, pr *scm.PullRequest, resolver *users.GitUserResolver) ([]slack.Attachment, []*slack.User, *Status, error) {
 	author, err := resolver.Resolve(&pr.Author)
 	if err != nil {
-		return nil, nil, nil, errors.WithStack(err)
+		return nil, nil, nil, err
 	}
 	if author == nil || pr == nil {
 		return nil, nil, nil, nil
@@ -252,14 +254,15 @@ func (o *Options) createReviewersMessage(activity *jenkinsv1.PipelineActivity, n
 			r := &pr.Reviewers[i]
 			u, err := resolver.Resolve(r)
 			if err != nil {
-				return nil, nil, nil, errors.Wrapf(err, "resolving %s user %s as Jenkins X user",
-					resolver.GitProviderKey(), r.Login)
+				return nil, nil, nil, fmt.Errorf("resolving %s user %s as Jenkins X user: %w",
+					resolver.GitProviderKey(), r.Login, err)
+
 			}
 			if u != nil {
 				mention, err := o.mentionOrLinkUser(u)
 				if err != nil {
-					return nil, nil, nil, errors.Wrapf(err,
-						"generating mention or link for user record %s with email %s", u.Name, u.Email)
+					return nil, nil, nil, fmt.Errorf("generating mention or link for user record %s with email %s: %w", u.Name, u.Email, err)
+
 				}
 				mentions = append(mentions, mention)
 			}
@@ -273,7 +276,7 @@ func (o *Options) createReviewersMessage(activity *jenkinsv1.PipelineActivity, n
 	// but until we get a better CRD based interface to the prow this will work
 	lgtmRepo, err := o.isLgtmRepo(activity)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "checking if repo for %s is configured for lgtm", activity.Name)
+		return nil, nil, nil, fmt.Errorf("checking if repo for %s is configured for lgtm: %w", activity.Name, err)
 	}
 	if lgtmRepo {
 		if containsOneOf(pr.Labels, "lgtm") {
@@ -394,7 +397,7 @@ func (o *Options) createPipelineMessage(activity *jenkinsv1.PipelineActivity, pr
 	icon := pipelineIcon(status)
 	pipelineName, err := pipelineName(activity)
 	if err != nil {
-		return nil, false, errors.Wrapf(err, "getting pipeline name for %s", activity.Name)
+		return nil, false, fmt.Errorf("getting pipeline name for %s: %w", activity.Name, err)
 	}
 	messageText := icon + pipelineName + " " + repositoryName(activity)
 	if prn, _, err := getPullRequestNumber(activity); err != nil {
@@ -533,7 +536,7 @@ func (o *Options) postMessage(channel string, directMessage bool, messageType st
 			},
 		})
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("(open converation channelID: %s)", channelID))
+			return fmt.Errorf("(open converation channelID: %s): %w", channelID, err)
 		}
 		channelID = channel.ID
 	}
@@ -555,7 +558,7 @@ func (o *Options) postMessage(channel string, directMessage bool, messageType st
 		// nolint
 		channelID, timestamp, _, err := o.SlackClient.SendMessage(channelID, options...)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("(post channelID: %s, timestamp: %s)", channelID, timestamp))
+			return fmt.Errorf("(post channelID: %s, timestamp: %s): %w", channelID, timestamp, err)
 		}
 		o.Timestamps[channel][activity.Name] = &MessageReference{
 			ChannelID: channelID,
@@ -591,7 +594,7 @@ func (o *Options) getPullRequest(ctx context.Context, activity *jenkinsv1.Pipeli
 	}
 	gitInfo, err := giturl.ParseGitURL(activity.Spec.GitURL)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to parse git URL %s", activity.Spec.GitURL)
+		return nil, nil, fmt.Errorf("failed to parse git URL %s: %w", activity.Spec.GitURL, err)
 	}
 
 	resolver = &users.GitUserResolver{
@@ -742,11 +745,11 @@ func (o *Options) annotatePipelineActivity(ctx context.Context, activity *jenkin
 	newActivity.Annotations[key] = value
 	patch, err := CreatePatch(activity, newActivity)
 	if err != nil {
-		return errors.Wrapf(err, "creating patch to add annotation %s=%s to %s", key, value, activity.Name)
+		return fmt.Errorf("creating patch to add annotation %s=%s to %s: %w", key, value, activity.Name, err)
 	}
 	jsonPatch, err := json.Marshal(patch)
 	if err != nil {
-		return errors.Wrapf(err, "marshaling patch to add annotation %s=%s to %s", key, value, activity.Name)
+		return fmt.Errorf("marshaling patch to add annotation %s=%s to %s: %w", key, value, activity.Name, err)
 	}
 	_, err = o.JXClient.JenkinsV1().PipelineActivities(o.Namespace).Patch(ctx, activity.Name, types.JSONPatchType,
 		jsonPatch, metav1.PatchOptions{})
@@ -781,7 +784,7 @@ func pipelineName(activity *jenkinsv1.PipelineActivity) (string, error) {
 	}
 	prn, _, err := getPullRequestNumber(activity)
 	if err != nil {
-		return "", errors.Wrapf(err, "getting pull request number from %s", activity.Name)
+		return "", fmt.Errorf("getting pull request number from %s: %w", activity.Name, err)
 	}
 	if prn > 0 {
 		return "Pull Request Pipeline", nil
@@ -982,7 +985,9 @@ func pipelineStatus(activity *jenkinsv1.PipelineActivity) jenkinsv1.ActivityStat
 	return statusType
 }
 
+//nolint:revive
 func pipelineIcon(statusType jenkinsv1.ActivityStatusType) string {
+	// TODO: choose icon
 	return ""
 }
 

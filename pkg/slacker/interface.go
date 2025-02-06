@@ -1,6 +1,8 @@
 package slacker
 
-import "github.com/slack-go/slack"
+import (
+	"github.com/slack-go/slack"
+)
 
 // Interface the main slack interface we need
 // which is a small subset of the slack API so its easier to fake
