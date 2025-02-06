@@ -1,6 +1,7 @@
 package slackbot
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,8 +16,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/ghodss/yaml"
-
-	"github.com/pkg/errors"
 
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 
@@ -163,12 +162,12 @@ func getPipelineActivity(filename string) (*jenkinsv1.PipelineActivity, error) {
 	testData := path.Join("test_data", "bot")
 	testfile, err := os.ReadFile(path.Join(testData, filename))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read file %s", path.Join(testData, filename))
+		return nil, fmt.Errorf("failed to read file %s: %w", path.Join(testData, filename), err)
 	}
 	act := &jenkinsv1.PipelineActivity{}
 	err = yaml.Unmarshal(testfile, &act)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal testfile %s", testfile)
+		return nil, fmt.Errorf("failed to unmarshal testfile %s: %w", testfile, err)
 	}
 	return act, nil
 }

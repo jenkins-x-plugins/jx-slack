@@ -1,11 +1,8 @@
 package slackbot
 
-import (
-	"testing"
-)
-
+/* TODO
 func TestCreateSlackBot(t *testing.T) {
-	/* TODO
+
 	secretName := "test_secret"
 	testToken := "123abc"
 	secret := &v1.Secret{
@@ -42,9 +39,9 @@ func TestCreateSlackBot(t *testing.T) {
 			}
 		})
 	}
-	*/
-}
 
+}
+*/
 /*
 func getSlackBot(secretName string) *slackappapi.SlackBot {
 	return &slackappapi.SlackBot{

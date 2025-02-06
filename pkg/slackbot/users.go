@@ -2,6 +2,7 @@ package slackbot
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -9,8 +10,6 @@ import (
 	"github.com/jenkins-x-plugins/jx-slack/pkg/slacker"
 
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
-
-	"github.com/pkg/errors"
 
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 
@@ -56,7 +55,7 @@ func (r *SlackUserResolver) SlackUserLogin(user *jenkinsv1.UserDetails) (string,
 		}
 		slackUser, err := r.SlackClient.GetUserByEmail(email)
 		if err != nil {
-			return "", errors.Wrapf(err, "could not find Slack ID using email %s", email)
+			return "", fmt.Errorf("could not find Slack ID using email %s: %w", email, err)
 		}
 		user.Accounts = append(user.Accounts, jenkinsv1.AccountReference{
 			Provider: r.SlackProviderKey(),
@@ -110,7 +109,7 @@ func (r *SlackUserResolver) getSlackEmailFromMapping(gitUserEmail, fileLocation 
 		}
 		err = s.Err()
 		if err != nil {
-			return "", errors.Wrapf(err, "failed scanning lines from file %s", fileLocation)
+			return "", fmt.Errorf("failed scanning lines from file %s: %w", fileLocation, err)
 		}
 	}
 	if r.UserMappings[gitUserEmail] == "" {

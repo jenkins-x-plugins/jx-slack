@@ -17,7 +17,7 @@ func NewCmdRun() *cobra.Command {
 		Use:   "run",
 		Short: "Run the Jenkins X slack bot",
 		Long:  ``,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			err := o.Run()
 			helper.CheckErr(err)
 		},

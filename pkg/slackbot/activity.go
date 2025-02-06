@@ -11,7 +11,7 @@ import (
 	jenkinsv1 "github.com/jenkins-x/jx-api/v4/pkg/apis/jenkins.io/v1"
 	informers "github.com/jenkins-x/jx-api/v4/pkg/client/informers/externalversions"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
-	"github.com/pkg/errors"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
@@ -71,7 +71,7 @@ func (o *Options) previousPipelineFailed(activity *jenkinsv1.PipelineActivity) (
 		if apierrors.IsNotFound(err) {
 			return false, nil
 		}
-		return false, errors.Wrapf(err, "failed to find PipelineActivity %s in namespace %s", previousName, o.Namespace)
+		return false, fmt.Errorf("failed to find PipelineActivity %s in namespace %s: %w", previousName, o.Namespace, err)
 	}
 	if previous == nil {
 		return false, nil
@@ -93,7 +93,7 @@ func (o *Options) WatchActivities() chan struct{} {
 
 	stopper := make(chan struct{})
 
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, _ = informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    o.onObj,
 		UpdateFunc: o.onUpdate,
 	})
