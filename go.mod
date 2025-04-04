@@ -6,7 +6,7 @@ require (
 	github.com/jenkins-x-plugins/jx-gitops v0.24.2
 	github.com/jenkins-x/go-scm v1.14.55
 	github.com/jenkins-x/jx-api/v4 v4.7.9
-	github.com/jenkins-x/jx-helpers/v3 v3.9.2
+	github.com/jenkins-x/jx-helpers/v3 v3.9.4
 	github.com/jenkins-x/jx-logging/v3 v3.0.17
 	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
 	github.com/sethvargo/go-envconfig v1.1.0
