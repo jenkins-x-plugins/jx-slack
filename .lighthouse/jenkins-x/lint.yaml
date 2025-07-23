@@ -8,6 +8,7 @@ spec:
     tasks:
     - name: jx-slack
       resources: {}
+      timeout: 4h
       taskSpec:
         metadata: {}
         stepTemplate:
@@ -26,5 +27,5 @@ spec:
               memory: 1400Mi
   podTemplate: {}
   serviceAccountName: tekton-bot
-  timeout: 30m0s
+  timeout: 4h
 status: {}
